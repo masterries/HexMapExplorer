@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HexMap Client-Side</title>
+    <title>HexMap Pro Client</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS -->
@@ -16,77 +16,190 @@
             height: 100vh;
             width: 100%;
         }
+
+        /* Glassmorphism Sidebar */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-gradient {
+            background: linear-gradient(to right, rgb(0, 255, 0) 0%, rgb(255, 255, 0) 50%, rgb(255, 0, 0) 100%);
+            height: 8px;
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            accent-color: #2563eb;
+        }
     </style>
 </head>
 
-<body class="flex h-screen bg-gray-100 overflow-hidden">
+<body class="flex h-screen bg-gray-100 overflow-hidden font-sans text-gray-800">
 
     <!-- Sidebar -->
-    <div class="w-1/4 min-w-[350px] bg-white shadow-xl z-20 flex flex-col p-6 overflow-y-auto">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">HexMap Client (Cached)</h1>
-
-        <div class="space-y-4">
-            <!-- Center Point -->
-            <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Start Point (Center)</label>
-                <div class="flex gap-2">
-                    <input type="number" id="center_lat" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                    <input type="number" id="center_lon" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                </div>
-                <div class="text-xs text-blue-500 mt-1 cursor-pointer hover:underline" onclick="enablePick('center')">📍
-                    Click to pick</div>
-            </div>
-
-            <!-- Dest Point -->
-            <div class="p-4 bg-red-50 rounded-lg border border-red-100">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Destination</label>
-                <div class="flex gap-2">
-                    <input type="number" id="dest_lat" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                    <input type="number" id="dest_lon" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                </div>
-                <div class="text-xs text-red-500 mt-1 cursor-pointer hover:underline" onclick="enablePick('dest')">📍
-                    Click to pick</div>
-            </div>
-
-            <!-- Parameters -->
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Radius (Hexagons)</label>
-                <input type="range" id="radius" min="2" max="15" value="6"
-                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                <div class="text-right text-xs text-gray-500"><span id="radius_val">6</span> (approx <span
-                        id="hex_count">127</span> hexs)</div>
-            </div>
-
-            <button onclick="generateGrid()" id="calcBtn"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition shadow-lg">
-                Generieren
-            </button>
-            <div id="status_text" class="text-xs text-gray-500 mt-1 text-center h-4"></div>
-            <div id="progress" class="hidden w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                <div id="progress_bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
-            </div>
-
-            <hr class="border-gray-200 my-2">
-
-            <div class="flex gap-2">
-                <input type="text" id="save_name" placeholder="Save Name (Required for PHP)"
-                    class="flex-grow p-2 border rounded text-sm">
-                <button onclick="saveConfigPHP()"
-                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow">Save (PHP)</button>
-            </div>
+    <div class="w-1/4 min-w-[380px] glass-panel z-20 flex flex-col p-6 overflow-y-auto relative">
+        <div class="flex items-center justify-between mb-8">
+            <h1
+                class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                HexMap <span class="font-light text-gray-500">Pro</span>
+            </h1>
+            <span class="px-2 py-1 text-xs font-bold text-indigo-100 bg-indigo-600 rounded shadow-sm">PHP / JS</span>
         </div>
 
-        <!-- History -->
-        <div class="mt-8">
-            <h3 class="font-bold text-gray-700 mb-2">PHP Database History</h3>
-            <ul id="history_list" class="space-y-2 text-sm text-gray-600">
-                <li><button class="text-blue-500 underline" onclick="loadHistoryPHP()">Load History</button></li>
-            </ul>
+        <div class="space-y-6 flex-grow">
+
+            <!-- Trip Settings -->
+            <div class="space-y-4">
+                <div class="relative group">
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1 ml-1">Start Point</label>
+                    <div
+                        class="flex gap-2 p-2 bg-white rounded-xl shadow-sm border border-gray-100 focus-within:ring-2 ring-blue-500 transition-all">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600 self-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                </path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-grow grid grid-cols-2 gap-2">
+                            <input type="number" id="center_lat" step="0.0001" placeholder="Lat"
+                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600">
+                            <input type="number" id="center_lon" step="0.0001" placeholder="Lon"
+                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600 text-right">
+                        </div>
+                        <button class="text-xs text-blue-500 hover:text-blue-700 px-1 font-semibold"
+                            onclick="enablePick('center')">PICK</button>
+                    </div>
+                </div>
+
+                <div class="relative group">
+                    <label class="block text-xs font-bold uppercase text-gray-400 mb-1 ml-1">Destination</label>
+                    <div
+                        class="flex gap-2 p-2 bg-white rounded-xl shadow-sm border border-gray-100 focus-within:ring-2 ring-red-500 transition-all">
+                        <div class="p-2 bg-red-50 rounded-lg text-red-600 self-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 21v-8a2 2 0 012-2h14a2 2 0 012 2v8"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 21a2 2 0 01-2-2"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13a2 2 0 100-4h14a2 2 0 100 4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 13v-6a4 4 0 10-8 0v6"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-grow grid grid-cols-2 gap-2">
+                            <input type="number" id="dest_lat" step="0.0001" placeholder="Lat"
+                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600">
+                            <input type="number" id="dest_lon" step="0.0001" placeholder="Lon"
+                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600 text-right">
+                        </div>
+                        <button class="text-xs text-red-500 hover:text-red-700 px-1 font-semibold"
+                            onclick="enablePick('dest')">PICK</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Controls -->
+            <div class="p-4 bg-white rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <!-- Radius Slider -->
+                <div>
+                    <div class="flex justify-between items-baseline mb-2">
+                        <label class="text-sm font-bold text-gray-700">Grid Radius</label>
+                        <span class="text-sm font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded"
+                            id="radius_val">6</span>
+                    </div>
+                    <input type="range" id="radius" min="2" max="30" value="6"
+                        class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between mt-1 text-xs text-gray-400">
+                        <span>Small</span>
+                        <span>Points: <span id="hex_count">127</span></span>
+                        <span>Large</span>
+                    </div>
+                </div>
+
+                <!-- Hex Size Slider -->
+                <div>
+                    <div class="flex justify-between items-baseline mb-2">
+                        <label class="text-sm font-bold text-gray-700">Hex Size</label>
+                        <span class="text-sm font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded"><span
+                                id="hex_size_val">0.4</span> km</span>
+                    </div>
+                    <input type="range" id="hex_size" min="0.1" max="2.0" step="0.1" value="0.4"
+                        class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between mt-1 text-xs text-gray-400">
+                        <span>High Res</span>
+                        <span>Low Res</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend and Generation -->
+            <div>
+                <button onclick="generateGrid()" id="calcBtn"
+                    class="w-full group relative flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg transition-all transform active:scale-95">
+                    Generate Map
+                </button>
+                <div id="status_text" class="text-xs text-gray-500 text-center mt-2 h-4 font-medium transition-all">
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progress" class="hidden w-full bg-gray-100 rounded-full h-1.5 mt-2 overflow-hidden">
+                    <div id="progress_bar" class="bg-blue-500 h-full rounded-full transition-all duration-300"
+                        style="width: 0%"></div>
+                </div>
+
+                <!-- Legend -->
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex justify-between text-xs font-semibold text-gray-500 mb-1">
+                        <span>Fast (0m)</span>
+                        <span>Slow (60m+)</span>
+                    </div>
+                    <div class="legend-gradient shadow-inner"></div>
+                </div>
+            </div>
+
+            <hr class="border-dashed border-gray-300">
+
+            <!-- Save / History -->
+            <div>
+                <h3 class="text-xs font-bold uppercase text-gray-400 mb-2 ml-1">Database Actions</h3>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="save_name" placeholder="Name configuration..."
+                        class="flex-grow p-2 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+                    <button onclick="saveConfigPHP()"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition-colors">Save</button>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 max-h-48 overflow-y-auto">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-500">History</span>
+                        <button class="text-xs text-blue-500 font-semibold hover:underline"
+                            onclick="loadHistoryPHP()">Refresh</button>
+                    </div>
+                    <ul id="history_list" class="space-y-2">
+                        <li class="text-xs text-gray-400 text-center py-4">Click Refresh to load saved maps</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="text-[10px] text-gray-300 text-center mt-4">
+            Powered by OSRM & Turf.js
         </div>
     </div>
 
     <!-- Map Container -->
-    <div class="flex-grow relative">
+    <div class="flex-grow z-10 relative">
         <div id="map"></div>
     </div>
 
@@ -94,21 +207,37 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Init Map
-        const map = L.map('map').setView([49.8734, 6.1727], 11);
+        const map = L.map('map', { zoomControl: false }).setView([49.8734, 6.1727], 11);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap, © CartoDB'
+            attribution: '&copy; CartoDB &copy; OSRM'
         }).addTo(map);
 
         let geoJsonLayer = L.geoJSON(null).addTo(map);
         let pickMode = null;
 
+        const centerIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#3b82f6; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);'></div>",
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        });
+
+        const destIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#ef4444; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);'></div>",
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+
         let markers = {
-            center: L.marker([49.8734, 6.1727], { draggable: true }).addTo(map),
+            center: L.marker([49.8734, 6.1727], { draggable: true, icon: centerIcon }).addTo(map),
+            // Use standard red marker for destination as it's the target
             dest: L.marker([49.8734, 6.1727], {
                 draggable: true, icon: L.icon({
                     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41]
+                    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]
                 })
             }).addTo(map)
         };
@@ -119,19 +248,27 @@
         document.getElementById('dest_lat').value = 49.8734;
         document.getElementById('dest_lon').value = 6.1727;
 
-        document.getElementById('radius').oninput = function () {
-            const r = parseInt(this.value);
+        // UI Updates
+        function updateCounts() {
+            const r = parseInt(document.getElementById('radius').value);
             document.getElementById('radius_val').innerText = r;
             const count = 3 * r * (r + 1) + 1;
             document.getElementById('hex_count').innerText = count;
         }
+        document.getElementById('radius').oninput = updateCounts;
+        updateCounts();
 
-        // --- CORE LOGIC ---
+        document.getElementById('hex_size').oninput = function () {
+            document.getElementById('hex_size_val').innerText = this.value;
+        }
+
+        // --- LOGIC ---
 
         function getColor(d) {
-            if (d === null || d === undefined) return 'gray';
+            if (d === null || d === undefined) return '#9ca3af'; // gray-400
             const max = 60;
             const p = Math.min(d / max, 1);
+            // Red-Yellow-Green interpolation
             const r = Math.round(p * 255);
             const g = Math.round((1 - p) * 255);
             return `rgb(${r},${g},0)`;
@@ -141,7 +278,7 @@
             return `${slat.toFixed(6)}_${slon.toFixed(6)}_${dlat.toFixed(6)}_${dlon.toFixed(6)}`;
         }
 
-        // Rate Limited Queue
+        // Simple Queue
         class RequestQueue {
             constructor(concurrency = 4) {
                 this.concurrency = concurrency;
@@ -153,25 +290,22 @@
                     await new Promise(resolve => this.queue.push(resolve));
                 }
                 this.pending++;
-                try {
-                    return await fn();
-                } finally {
+                try { return await fn(); } finally {
                     this.pending--;
                     if (this.queue.length > 0) this.queue.shift()();
                 }
             }
         }
-        const queue = new RequestQueue(5);
+        const queue = new RequestQueue(6);
 
         async function fetchOSRM(source, dest) {
+            // source/dest are [lon, lat]
             const url = `https://router.project-osrm.org/route/v1/driving/${source[0]},${source[1]};${dest[0]},${dest[1]}?overview=false`;
             try {
                 const res = await fetch(url);
                 if (res.status !== 200) return null;
                 const data = await res.json();
-                if (data.routes && data.routes.length > 0) {
-                    return data.routes[0].duration / 60.0;
-                }
+                if (data.routes && data.routes.length > 0) return data.routes[0].duration / 60.0;
             } catch (e) { console.error(e); }
             return null;
         }
@@ -182,7 +316,7 @@
                     method: 'POST', body: JSON.stringify({ action: 'get', data: keys })
                 });
                 return await res.json();
-            } catch (e) { console.error("Cache Fetch Error", e); return {}; }
+            } catch (e) { return {}; }
         }
 
         async function saveCacheBatch(data) {
@@ -190,141 +324,177 @@
                 await fetch('cache_layer.php', {
                     method: 'POST', body: JSON.stringify({ action: 'set', data: data })
                 });
-            } catch (e) { console.error("Cache Save Error", e); }
+            } catch (e) { }
         }
 
         async function generateGrid() {
-            const center = [parseFloat(document.getElementById('center_lon').value), parseFloat(document.getElementById('center_lat').value)];
-            const dest = [parseFloat(document.getElementById('dest_lon').value), parseFloat(document.getElementById('dest_lat').value)];
-            // Use fixed precision for cache keys to ensure hits
+            // Get inputs
+            const centerLat = parseFloat(document.getElementById('center_lat').value);
+            const centerLon = parseFloat(document.getElementById('center_lon').value);
             const destLat = parseFloat(document.getElementById('dest_lat').value);
             const destLon = parseFloat(document.getElementById('dest_lon').value);
-
             const radius = parseInt(document.getElementById('radius').value);
-            const hexSize = 0.4;
+            const hexSize = parseFloat(document.getElementById('hex_size').value);
 
             const btn = document.getElementById('calcBtn');
             const pBar = document.getElementById('progress_bar');
             const statusTxt = document.getElementById('status_text');
+
             document.getElementById('progress').classList.remove('hidden');
             btn.disabled = true;
+            btn.innerText = "Processing...";
+            pBar.style.width = "0%";
 
-            // 1. Generate All Points
+            // Clear Layer
+            if (geoJsonLayer) map.removeLayer(geoJsonLayer);
+            geoJsonLayer = L.geoJSON(null, {
+                style: f => ({
+                    fillColor: getColor(f.properties.driving_time),
+                    weight: 1, opacity: 0.8, color: 'white', fillOpacity: 0.6
+                }),
+                onEachFeature: (f, l) => {
+                    const t = f.properties.driving_time;
+                    l.bindPopup(`<div class="text-sm font-bold">Driving Time: ${t ? t.toFixed(1) + ' min' : 'N/A'}</div>`);
+                }
+            }).addTo(map);
+
+            // 1. Generate Points (MERCATOR LOGIC)
+            statusTxt.innerText = "Generating Hexagons...";
             const hexRequests = [];
 
-            function axialToOffset(q, r, size) {
-                const x = size * Math.sqrt(3) * (q + r / 2);
-                const y = size * 1.5 * r;
-                return { x, y };
+            // Converts Lat/Lon to Mercator X/Y (Meters)
+            function toMercator(lat, lon) {
+                const r = 6378137; // Earth Radius
+                const x = r * (lon * Math.PI / 180);
+                const y = r * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
+                return [x, y];
             }
-            function offsetToLatLon(originList, offX, offY) {
-                const origin = turf.point(originList);
-                const d = Math.sqrt(offX * offX + offY * offY);
-                if (d === 0) return originList;
-                const bearing = (Math.atan2(offX, offY) * 180 / Math.PI);
-                const dest = turf.destination(origin, d, bearing, { units: 'kilometers' });
-                return dest.geometry.coordinates;
+
+            // Converts Mercator X/Y to Lat/Lon
+            function toLatLon(x, y) {
+                const r = 6378137;
+                const lon = (x / r) * (180 / Math.PI);
+                const lat = (2 * Math.atan(Math.exp(y / r)) - Math.PI / 2) * (180 / Math.PI);
+                return [lat, lon];
             }
-            function getHexPoly(center, size) {
+
+            const centerMerc = toMercator(centerLat, centerLon); // [x, y]
+            const hexSizeMeters = hexSize * 1000; // Radius in Meters
+
+            // Polygon Generator in Mercator
+            // Pointy Topped Hexagon
+            function getHexPolyMerc(cx, cy) {
                 const verts = [];
                 for (let i = 0; i < 6; i++) {
-                    const angle = 60 * i - 30;
-                    const rad = angle * Math.PI / 180;
-                    const ox = size * Math.cos(rad);
-                    const oy = size * Math.sin(rad);
-                    verts.push(offsetToLatLon(center, ox, oy));
+                    const angle_deg = 60 * i - 30;
+                    const angle_rad = angle_deg * Math.PI / 180;
+                    // Simple 2D Plane Math
+                    const vx = cx + hexSizeMeters * Math.cos(angle_rad);
+                    const vy = cy + hexSizeMeters * Math.sin(angle_rad);
+                    // Convert back to LatLon for Leaflet
+                    const ll = toLatLon(vx, vy);
+                    verts.push([ll[1], ll[0]]); // GeoJSON expects [Lon, Lat]
                 }
                 verts.push(verts[0]);
                 return verts;
             }
 
-            statusTxt.innerText = "Calculating Grid...";
             for (let q = -radius; q <= radius; q++) {
                 for (let r = -radius; r <= radius; r++) {
-                    if (Math.abs(q) + Math.abs(r) + Math.abs(-q - r) <= radius * 2) {
-                        const off = axialToOffset(q, r, hexSize);
-                        const hCenter = offsetToLatLon(center, off.x, off.y);
-                        // Use lat/lon for key
-                        const key = getCacheKey(hCenter[1], hCenter[0], destLat, destLon);
-                        hexRequests.push({ q, r, center: hCenter, key: key, time: null });
+                    if (Math.abs(q) + Math.abs(r) + Math.abs(-q - r) <= radius) {
+                        // Pointy Topped Axial to Cartesian (Meters)
+                        // x = size * sqrt(3) * (q + r/2)
+                        // y = size * 3/2 * r
+
+                        const x_off = hexSizeMeters * Math.sqrt(3) * (q + r / 2);
+                        const y_off = hexSizeMeters * (3 / 2) * r;
+
+                        // Add to Center Mercator
+                        const hx = centerMerc[0] + x_off;
+                        const hy = centerMerc[1] + y_off; // Mercator Y increases North, same as Offset
+
+                        const ll = toLatLon(hx, hy); // [lat, lon]
+
+                        // Cache key (using Lat/Lon)
+                        const key = getCacheKey(ll[0], ll[1], destLat, destLon);
+
+                        hexRequests.push({
+                            centerLL: ll, // [lat, lon]
+                            mercX: hx,
+                            mercY: hy,
+                            key: key,
+                            time: null
+                        });
                     }
                 }
             }
 
             // 2. Check Cache
-            statusTxt.innerText = "Checking Cache...";
-            const keysToCheck = hexRequests.map(r => r.key);
-            // Chunk keys if too many (PHP post limit)
-            const cacheData = await fetchCacheBatch(keysToCheck);
+            statusTxt.innerText = "Checking Database Cache...";
+            const keys = hexRequests.map(x => x.key);
+            const cacheData = await fetchCacheBatch(keys);
 
-            let missingCount = 0;
+            let missing = 0;
             hexRequests.forEach(req => {
-                if (cacheData[req.key] !== undefined) {
-                    req.time = parseFloat(cacheData[req.key]);
-                } else {
-                    missingCount++;
-                }
+                if (cacheData[req.key] !== undefined) req.time = parseFloat(cacheData[req.key]);
+                else missing++;
             });
 
-            console.log(`Cache Hit: ${hexRequests.length - missingCount}, Missing: ${missingCount}`);
-
-            // 3. Clear Map & Draw Cached Items immediately
-            if (geoJsonLayer) map.removeLayer(geoJsonLayer);
-            geoJsonLayer = L.geoJSON(null, {
-                style: f => ({
-                    fillColor: getColor(f.properties.driving_time),
-                    weight: 1, opacity: 1, color: 'white', fillOpacity: 0.6
-                }),
-                onEachFeature: (f, l) => l.bindPopup(`Time: ${f.properties.driving_time?.toFixed(1) || 'N/A'} min`)
-            }).addTo(map);
-
-            // Add cached items to map now
+            // Draw Cached
             hexRequests.filter(r => r.time !== null).forEach(r => {
-                const poly = getHexPoly(r.center, hexSize);
+                // Generate Poly in Mercator domain, then project to lat/lon for perfectly aligned drawings
+                const poly = getHexPolyMerc(r.mercX, r.mercY);
                 geoJsonLayer.addData({
-                    "type": "Feature",
-                    "geometry": { "type": "Polygon", "coordinates": [poly] },
-                    "properties": { "driving_time": r.time }
+                    type: "Feature", properties: { driving_time: r.time },
+                    geometry: { type: "Polygon", coordinates: [poly] } // poly is [[lon,lat]...]
                 });
             });
 
-            // 4. Fetch Missing
-            statusTxt.innerText = `Fetching ${missingCount} from OSRM...`;
-            let completed = 0;
-            const newCacheData = {}; // For batch saving
+            if (missing === 0) {
+                finish("Done (All Cached)");
+                return;
+            }
 
-            const missingReqs = hexRequests.filter(r => r.time === null);
-            for (const req of missingReqs) {
+            // 3. Fetch Missing
+            statusTxt.innerText = `Fetching ${missing} routes...`;
+            const toFetch = hexRequests.filter(r => r.time === null);
+            let done = 0;
+            const newCache = {};
+
+            for (const req of toFetch) {
                 await queue.add(async () => {
-                    const dt = await fetchOSRM(req.center, dest);
+                    // OSRM expects [lon, lat]
+                    // req.centerLL is [lat, lon]
+                    const time = await fetchOSRM([req.centerLL[1], req.centerLL[0]], [destLat, destLon]);
 
-                    if (dt !== null) {
-                        newCacheData[req.key] = dt;
-
-                        // Add to map live
-                        const poly = getHexPoly(req.center, hexSize);
+                    if (time !== null) {
+                        newCache[req.key] = time;
+                        const poly = getHexPolyMerc(req.mercX, req.mercY);
                         geoJsonLayer.addData({
-                            "type": "Feature",
-                            "geometry": { "type": "Polygon", "coordinates": [poly] },
-                            "properties": { "driving_time": dt }
+                            type: "Feature", properties: { driving_time: time },
+                            geometry: { type: "Polygon", coordinates: [poly] }
                         });
                     }
-
-                    completed++;
-                    pBar.style.width = (completed / missingCount) * 100 + "%";
+                    done++;
+                    pBar.style.width = (done / missing * 100) + "%";
                     await new Promise(r => setTimeout(r, 20));
                 });
             }
 
-            // 5. Save to Cache
-            if (Object.keys(newCacheData).length > 0) {
-                statusTxt.innerText = "Saving to Cache...";
-                await saveCacheBatch(newCacheData);
+            // 4. Save
+            if (Object.keys(newCache).length > 0) {
+                statusTxt.innerText = "Saving to Database...";
+                await saveCacheBatch(newCache);
             }
 
-            statusTxt.innerText = "Done!";
-            btn.disabled = false;
-            setTimeout(() => { document.getElementById('progress').classList.add('hidden'); }, 2000);
+            finish("Generation Complete");
+
+            function finish(msg) {
+                statusTxt.innerText = msg;
+                btn.disabled = false;
+                btn.innerText = "Generate Map";
+                setTimeout(() => document.getElementById('progress').classList.add('hidden'), 2000);
+            }
         }
 
         async function saveConfigPHP() {
@@ -337,40 +507,72 @@
                 radius: parseInt(document.getElementById('radius').value),
                 hex_size: parseFloat(document.getElementById('hex_size').value)
             };
+            const btn = document.querySelector('button[onclick="saveConfigPHP()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "Saving...";
+
             try {
                 const res = await fetch('save_map.php', { method: 'POST', body: JSON.stringify(payload) });
                 const json = await res.json();
-                if (json.status === 'success') alert("Saved!"); else alert("Error: " + json.message);
+                if (json.status === 'success') {
+                    btn.innerText = "Saved!";
+                    btn.classList.add('bg-green-700');
+                    loadHistoryPHP();
+                } else alert("Error: " + json.message);
             } catch (e) { alert("Network Error"); }
+            setTimeout(() => { btn.innerText = originalText; btn.classList.remove('bg-green-700'); }, 2000);
         }
 
         async function loadHistoryPHP() {
+            const list = document.getElementById('history_list');
+            list.innerHTML = '<li class="text-xs text-gray-400 text-center animate-pulse">Loading...</li>';
+
             try {
                 const res = await fetch('get_history.php');
                 const data = await res.json();
-                const list = document.getElementById('history_list');
                 list.innerHTML = "";
+
+                if (data.length === 0) {
+                    list.innerHTML = '<li class="text-xs text-gray-400 text-center">No history found</li>';
+                    return;
+                }
+
                 data.forEach(item => {
                     const li = document.createElement('li');
-                    li.className = "p-2 hover:bg-gray-100 cursor-pointer border rounded flex justify-between";
-                    li.innerHTML = `<span>${item.name}</span> <span class="text-xs text-gray-400">${item.created_at}</span>`;
+                    li.className = "group p-3 bg-white rounded-lg border border-gray-100 hover:border-blue-400 cursor-pointer shadow-sm transition-all hover:shadow-md";
+                    li.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-gray-700 text-sm group-hover:text-blue-600 truncate">${item.name}</span>
+                            <span class="text-[10px] text-gray-400 font-mono">${new Date(item.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div class="flex gap-2 text-[10px] text-gray-400">
+                            <span class="bg-gray-100 px-1.5 rounded">R: ${item.radius}</span>
+                            <span class="bg-gray-100 px-1.5 rounded">Size: ${item.hex_size || '0.4'}km</span>
+                        </div>
+                    `;
                     li.onclick = () => {
                         document.getElementById('center_lat').value = item.center_lat;
                         document.getElementById('center_lon').value = item.center_lon;
-                        document.getElementById('radius').value = item.radius;
-                        document.getElementById('radius_val').innerText = item.radius;
-                        if (item.hex_size) {
-                            document.getElementById('hex_size').value = item.hex_size;
-                            document.getElementById('hex_size_val').innerText = item.hex_size;
-                        }
+                        document.getElementById('dest_lat').value = item.dest_lat;
+                        document.getElementById('dest_lon').value = item.dest_lon;
 
+                        document.getElementById('radius').value = item.radius;
+                        if (item.hex_size) document.getElementById('hex_size').value = item.hex_size;
+
+                        updateCounts();
+                        document.getElementById('hex_size').dispatchEvent(new Event('input')); // Update UI val
+
+                        // Move visual markers
                         markers.center.setLatLng([item.center_lat, item.center_lon]);
+                        markers.dest.setLatLng([item.dest_lat, item.dest_lon]);
+                        map.setView([item.center_lat, item.center_lon], 11);
                     };
                     list.appendChild(li);
                 });
             } catch (e) { console.error(e); }
         }
 
+        // Interaction
         map.on('click', function (e) {
             if (pickMode) {
                 if (pickMode === 'center') {
@@ -383,14 +585,30 @@
                     markers.dest.setLatLng(e.latlng);
                 }
                 pickMode = null;
-                map.getContainer().style.cursor = '';
+                document.querySelector('.leaflet-container').style.cursor = '';
             }
         });
 
         function enablePick(mode) {
             pickMode = mode;
-            map.getContainer().style.cursor = 'crosshair';
+            document.querySelector('.leaflet-container').style.cursor = 'crosshair';
         }
+
+        // Sync markers
+        markers.center.on('dragend', function (e) {
+            const pos = e.target.getLatLng();
+            document.getElementById('center_lat').value = pos.lat.toFixed(4);
+            document.getElementById('center_lon').value = pos.lng.toFixed(4);
+        });
+        markers.dest.on('dragend', function (e) {
+            const pos = e.target.getLatLng();
+            document.getElementById('dest_lat').value = pos.lat.toFixed(4);
+            document.getElementById('dest_lon').value = pos.lng.toFixed(4);
+        });
+
+        // Load init
+        loadHistoryPHP();
+
     </script>
 </body>
 
