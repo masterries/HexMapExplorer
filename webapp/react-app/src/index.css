@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* Leaflet container */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Glassmorphism panel */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Legend gradient */
+.legend-gradient {
+  background: linear-gradient(to right, rgb(34, 197, 94) 0%, rgb(234, 179, 8) 50%, rgb(239, 68, 68) 100%);
+  height: 10px;
+  width: 100%;
+  border-radius: 5px;
+}
+
+/* Custom range slider */
+input[type=range] {
+  accent-color: #3b82f6;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  cursor: grab;
+}
+
+input[type=range]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+/* Smooth animations */
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ring progress indicator */
+.ring-indicator {
+  position: relative;
+}
+
+.ring-indicator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hex pulse animation for processing */
+@keyframes hexPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.hex-processing {
+  animation: hexPulse 0.5s ease-in-out infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
