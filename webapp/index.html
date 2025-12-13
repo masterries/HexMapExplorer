@@ -37,19 +37,316 @@
         input[type=range] {
             accent-color: #2563eb;
         }
+
+        /* Hexagon State Colors */
+        .hex-queued {
+            fill: #93c5fd !important;
+            fill-opacity: 0.4 !important;
+            stroke: #3b82f6 !important;
+        }
+
+        .hex-exploring {
+            fill: #fbbf24 !important;
+            fill-opacity: 0.8 !important;
+            stroke: #f59e0b !important;
+            stroke-width: 3 !important;
+        }
+
+        .hex-visited {
+            fill-opacity: 0.7 !important;
+        }
+
+        .hex-path {
+            stroke: #dc2626 !important;
+            stroke-width: 4 !important;
+            fill-opacity: 0.9 !important;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                fill-opacity: 0.5;
+            }
+
+            50% {
+                fill-opacity: 1;
+            }
+        }
+
+        .hex-pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        /* Algorithm Stats Panel */
+        .algo-stats {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #a5b4fc;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* Collapsible Panel */
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible-header .chevron {
+            transition: transform 0.3s ease;
+        }
+
+        .collapsible-header.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.open {
+            max-height: 500px;
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: #1a1a2e;
+        }
+
+        body.dark-mode .glass-panel {
+            background: rgba(30, 30, 50, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-mode h1 {
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        body.dark-mode h1 span {
+            color: #6b7280;
+        }
+
+        body.dark-mode label,
+        body.dark-mode h3 {
+            color: #9ca3af !important;
+        }
+
+        body.dark-mode .text-gray-400 {
+            color: #6b7280 !important;
+        }
+
+        body.dark-mode .text-gray-500 {
+            color: #9ca3af !important;
+        }
+
+        body.dark-mode .text-gray-600 {
+            color: #d1d5db !important;
+        }
+
+        body.dark-mode .text-gray-700 {
+            color: #e5e7eb !important;
+        }
+
+        body.dark-mode .bg-white {
+            background: #2d2d44 !important;
+        }
+
+        body.dark-mode .bg-gray-50 {
+            background: #252538 !important;
+        }
+
+        body.dark-mode .bg-gray-100 {
+            background: #1f1f32 !important;
+        }
+
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="number"] {
+            background: #2d2d44 !important;
+            color: #e5e7eb !important;
+            border-color: #4b5563 !important;
+        }
+
+        body.dark-mode .border-gray-100,
+        body.dark-mode .border-gray-200,
+        body.dark-mode .border-gray-300 {
+            border-color: #374151 !important;
+        }
+
+        body.dark-mode hr {
+            border-color: #374151 !important;
+        }
+
+        body.dark-mode .shadow-sm {
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .glass-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 85% !important;
+                max-width: 380px;
+                min-width: unset !important;
+                height: 100vh;
+                z-index: 9999;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .glass-panel.open {
+                transform: translateX(0);
+            }
+
+            #map {
+                position: fixed !important;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                width: 100%;
+                z-index: 1;
+            }
+
+            .mobile-menu-btn {
+                display: flex !important;
+                z-index: 100;
+            }
+
+            .mobile-close-btn {
+                display: block !important;
+            }
+
+            .mobile-backdrop {
+                display: block !important;
+            }
+
+            .mobile-backdrop.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-menu-btn {
+                display: none !important;
+            }
+
+            .mobile-close-btn {
+                display: none !important;
+            }
+
+            .glass-panel {
+                transform: translateX(0) !important;
+            }
+        }
+
+        .mobile-menu-btn {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 999;
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+
+        body.dark-mode .mobile-menu-btn {
+            background: #2d2d44;
+        }
+
+        /* Mobile Backdrop */
+        .mobile-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
     </style>
 </head>
 
 <body class="flex h-screen bg-gray-100 overflow-hidden font-sans text-gray-800">
 
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+
+    <!-- Mobile Backdrop -->
+    <div id="mobileBackdrop" class="mobile-backdrop" onclick="toggleMobileMenu()"></div>
+
     <!-- Sidebar -->
-    <div class="w-1/4 min-w-[380px] glass-panel z-20 flex flex-col p-6 overflow-y-auto relative">
+    <div id="sidebar" class="w-1/4 min-w-[380px] glass-panel z-20 flex flex-col p-6 overflow-y-auto relative">
         <div class="flex items-center justify-between mb-8">
-            <h1
-                class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                HexMap <span class="font-light text-gray-500">Pro</span>
-            </h1>
-            <span class="px-2 py-1 text-xs font-bold text-indigo-100 bg-indigo-600 rounded shadow-sm">PHP / JS</span>
+            <div class="flex items-center gap-2">
+                <!-- Mobile Close Button -->
+                <button class="mobile-close-btn p-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+                    onclick="toggleMobileMenu()" style="display: none;">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <h1
+                    class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                    HexMap <span class="font-light text-gray-500">Pro</span>
+                </h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Dark Mode Toggle -->
+                <button id="darkModeToggle" onclick="toggleDarkMode()"
+                    class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 transition-colors"
+                    title="Toggle Dark Mode">
+                    <svg id="sunIcon" class="w-5 h-5 text-yellow-500 hidden" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <svg id="moonIcon" class="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    </svg>
+                </button>
+                <span class="px-2 py-1 text-xs font-bold text-indigo-100 bg-indigo-600 rounded shadow-sm">A*</span>
+            </div>
         </div>
 
         <div class="space-y-6 flex-grow">
@@ -69,13 +366,30 @@
                                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             </svg>
                         </div>
-                        <div class="flex-grow grid grid-cols-2 gap-2">
-                            <input type="number" id="center_lat" step="0.0001" placeholder="Lat"
-                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600">
-                            <input type="number" id="center_lon" step="0.0001" placeholder="Lon"
-                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600 text-right">
+                        <div class="flex-grow flex flex-col gap-1">
+                            <!-- Search -->
+                            <div class="flex relative">
+                                <input type="text" id="start_search" placeholder="Search Place..."
+                                    class="w-full text-xs border-b border-gray-100 pb-1 outline-none bg-transparent font-medium"
+                                    onkeypress="if(event.key==='Enter') searchLocation('start')">
+                                <button onclick="searchLocation('start')"
+                                    class="absolute right-0 text-gray-400 hover:text-blue-500">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- Coords -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="center_lat" step="0.0001" placeholder="Lat"
+                                    class="w-full text-[10px] bg-transparent outline-none font-mono text-gray-500">
+                                <input type="number" id="center_lon" step="0.0001" placeholder="Lon"
+                                    class="w-full text-[10px] bg-transparent outline-none font-mono text-gray-500 text-right">
+                            </div>
                         </div>
-                        <button class="text-xs text-blue-500 hover:text-blue-700 px-1 font-semibold"
+                        <button
+                            class="text-xs text-blue-500 hover:text-blue-700 px-1 font-semibold border-l border-gray-100 pl-2"
                             onclick="enablePick('center')">PICK</button>
                     </div>
                 </div>
@@ -96,13 +410,30 @@
                                     d="M17 13v-6a4 4 0 10-8 0v6"></path>
                             </svg>
                         </div>
-                        <div class="flex-grow grid grid-cols-2 gap-2">
-                            <input type="number" id="dest_lat" step="0.0001" placeholder="Lat"
-                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600">
-                            <input type="number" id="dest_lon" step="0.0001" placeholder="Lon"
-                                class="w-full text-sm bg-transparent outline-none font-mono text-gray-600 text-right">
+                        <div class="flex-grow flex flex-col gap-1">
+                            <!-- Search -->
+                            <div class="flex relative">
+                                <input type="text" id="dest_search" placeholder="Search Place..."
+                                    class="w-full text-xs border-b border-gray-100 pb-1 outline-none bg-transparent font-medium"
+                                    onkeypress="if(event.key==='Enter') searchLocation('dest')">
+                                <button onclick="searchLocation('dest')"
+                                    class="absolute right-0 text-gray-400 hover:text-red-500">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- Coords -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="dest_lat" step="0.0001" placeholder="Lat"
+                                    class="w-full text-[10px] bg-transparent outline-none font-mono text-gray-500">
+                                <input type="number" id="dest_lon" step="0.0001" placeholder="Lon"
+                                    class="w-full text-[10px] bg-transparent outline-none font-mono text-gray-500 text-right">
+                            </div>
                         </div>
-                        <button class="text-xs text-red-500 hover:text-red-700 px-1 font-semibold"
+                        <button
+                            class="text-xs text-blue-500 hover:text-blue-700 px-1 font-semibold border-l border-gray-100 pl-2"
                             onclick="enablePick('dest')">PICK</button>
                     </div>
                 </div>
@@ -114,11 +445,13 @@
                 <div>
                     <div class="flex justify-between items-baseline mb-2">
                         <label class="text-sm font-bold text-gray-700">Grid Radius</label>
-                        <span class="text-sm font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded"
-                            id="radius_val">6</span>
+                        <input type="number" id="radius_input" value="6"
+                            class="w-20 text-right text-sm font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-transparent focus:border-blue-300 outline-none transition-colors"
+                            onchange="syncSlider('radius', this.value)">
                     </div>
                     <input type="range" id="radius" min="2" max="30" value="6"
-                        class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer">
+                        class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                        oninput="syncInput('radius', this.value)">
                     <div class="flex justify-between mt-1 text-xs text-gray-400">
                         <span>Small</span>
                         <span>Points: <span id="hex_count">127</span></span>
@@ -129,12 +462,14 @@
                 <!-- Hex Size Slider -->
                 <div>
                     <div class="flex justify-between items-baseline mb-2">
-                        <label class="text-sm font-bold text-gray-700">Hex Size</label>
-                        <span class="text-sm font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded"><span
-                                id="hex_size_val">0.4</span> km</span>
+                        <label class="text-sm font-bold text-gray-700">Hex Size (km)</label>
+                        <input type="number" id="hex_size_input" value="0.4" step="0.1"
+                            class="w-20 text-right text-sm font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-transparent focus:border-indigo-300 outline-none transition-colors"
+                            onchange="syncSlider('hex_size', this.value)">
                     </div>
                     <input type="range" id="hex_size" min="0.1" max="2.0" step="0.1" value="0.4"
-                        class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer">
+                        class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                        oninput="syncInput('hex_size', this.value)">
                     <div class="flex justify-between mt-1 text-xs text-gray-400">
                         <span>High Res</span>
                         <span>Low Res</span>
@@ -144,10 +479,21 @@
 
             <!-- Legend and Generation -->
             <div>
-                <button onclick="generateGrid()" id="calcBtn"
-                    class="w-full group relative flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg transition-all transform active:scale-95">
-                    Generate Map
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="generateGrid()" id="calcBtn"
+                        class="flex-grow group relative flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg transition-all transform active:scale-95">
+                        Generate Map
+                    </button>
+                    <button onclick="stopGeneration()" id="stopBtn"
+                        class="hidden py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-lg transition-all transform active:scale-95">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                        </svg>
+                    </button>
+                </div>
                 <div id="status_text" class="text-xs text-gray-500 text-center mt-2 h-4 font-medium transition-all">
                 </div>
 
@@ -164,6 +510,70 @@
                         <span>Slow (60m+)</span>
                     </div>
                     <div class="legend-gradient shadow-inner"></div>
+                </div>
+            </div>
+
+            <hr class="border-dashed border-gray-300">
+
+            <!-- Algorithm Stats Panel (Collapsible) -->
+            <div id="algo_panel">
+                <div class="collapsible-header" onclick="toggleAlgoPanel()">
+                    <h3 class="text-xs font-bold uppercase text-gray-400 ml-1">A* Algorithm Visualization</h3>
+                    <svg class="chevron w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <div id="algo_content" class="collapsible-content">
+                    <div class="algo-stats mt-2">
+                        <div class="stat-item">
+                            <span class="stat-label">Current Step</span>
+                            <span class="stat-value" id="stat_step">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Queue Size</span>
+                            <span class="stat-value" id="stat_queue">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Visited</span>
+                            <span class="stat-value" id="stat_visited">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Path Length</span>
+                            <span class="stat-value" id="stat_path">-</span>
+                        </div>
+                        <div class="stat-item" style="border: none;">
+                            <span class="stat-label">Status</span>
+                            <span class="stat-value text-green-400" id="stat_status">Ready</span>
+                        </div>
+                    </div>
+                    <!-- State Legend -->
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded" style="background: #93c5fd; border: 1px solid #3b82f6;"></div>
+                            <span class="text-gray-600">Queued</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded" style="background: #fbbf24; border: 2px solid #f59e0b;"></div>
+                            <span class="text-gray-600">Exploring</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded" style="background: #22c55e;"></div>
+                            <span class="text-gray-600">Visited</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded" style="background: #22c55e; border: 3px solid #dc2626;"></div>
+                            <span class="text-gray-600">Path</span>
+                        </div>
+                    </div>
+                    <!-- Speed Control -->
+                    <div class="mt-3">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <label class="text-xs text-indigo-200">Animation Speed</label>
+                            <span class="text-xs font-mono text-white" id="speed_val">50ms</span>
+                        </div>
+                        <input type="range" id="algo_speed" min="10" max="500" value="50" step="10"
+                            class="w-full h-1 bg-indigo-900 rounded-lg appearance-none cursor-pointer">
+                    </div>
                 </div>
             </div>
 
@@ -249,18 +659,29 @@
         document.getElementById('dest_lon').value = 6.1727;
 
         // UI Updates
+        // ========== MANUAL INPUTS ==========
+        function syncSlider(id, val) {
+            const slider = document.getElementById(id);
+            if (val >= parseFloat(slider.min) && val <= parseFloat(slider.max)) {
+                slider.value = val;
+            }
+            updateCounts();
+        }
+
+        function syncInput(id, val) {
+            const input = document.getElementById(id + '_input');
+            input.value = val;
+            updateCounts();
+        }
+
         function updateCounts() {
-            const r = parseInt(document.getElementById('radius').value);
-            document.getElementById('radius_val').innerText = r;
+            const r = parseInt(document.getElementById('radius_input').value) || 0;
             const count = 3 * r * (r + 1) + 1;
             document.getElementById('hex_count').innerText = count;
         }
-        document.getElementById('radius').oninput = updateCounts;
-        updateCounts();
 
-        document.getElementById('hex_size').oninput = function () {
-            document.getElementById('hex_size_val').innerText = this.value;
-        }
+        // Init
+        updateCounts();
 
         // --- LOGIC ---
 
@@ -333,168 +754,319 @@
             const centerLon = parseFloat(document.getElementById('center_lon').value);
             const destLat = parseFloat(document.getElementById('dest_lat').value);
             const destLon = parseFloat(document.getElementById('dest_lon').value);
-            const radius = parseInt(document.getElementById('radius').value);
-            const hexSize = parseFloat(document.getElementById('hex_size').value);
+            const radius = parseInt(document.getElementById('radius_input').value);
+            const hexSize = parseFloat(document.getElementById('hex_size_input').value);
 
             const btn = document.getElementById('calcBtn');
             const pBar = document.getElementById('progress_bar');
             const statusTxt = document.getElementById('status_text');
+            const algoPanel = document.getElementById('algo_panel');
 
+            // Show and expand algorithm panel
+            document.querySelector('#algo_panel .collapsible-header').classList.add('open');
+            document.getElementById('algo_content').classList.add('open');
             document.getElementById('progress').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+            window.stopRequested = false;
             btn.disabled = true;
-            btn.innerText = "Processing...";
+            btn.innerText = "Running A*...";
             pBar.style.width = "0%";
 
-            // Clear Layer
+            // Speed control
+            const getSpeed = () => parseInt(document.getElementById('algo_speed').value);
+            document.getElementById('algo_speed').oninput = function () {
+                document.getElementById('speed_val').innerText = this.value + 'ms';
+            };
+
+            // Stats update helper
+            const updateStats = (step, queueSize, visited, pathLen, status) => {
+                document.getElementById('stat_step').innerText = step;
+                document.getElementById('stat_queue').innerText = queueSize;
+                document.getElementById('stat_visited').innerText = visited;
+                document.getElementById('stat_path').innerText = pathLen;
+                document.getElementById('stat_status').innerText = status;
+            };
+            updateStats(0, 0, 0, '-', 'Initializing...');
+
+            // Clear existing layers
             if (geoJsonLayer) map.removeLayer(geoJsonLayer);
-            geoJsonLayer = L.geoJSON(null, {
-                style: f => ({
-                    fillColor: getColor(f.properties.driving_time),
-                    weight: 1, opacity: 0.8, color: 'white', fillOpacity: 0.6
-                }),
-                onEachFeature: (f, l) => {
-                    const t = f.properties.driving_time;
-                    l.bindPopup(`<div class="text-sm font-bold">Driving Time: ${t ? t.toFixed(1) + ' min' : 'N/A'}</div>`);
-                }
-            }).addTo(map);
 
-            // 1. Generate Points (MERCATOR LOGIC)
-            statusTxt.innerText = "Generating Hexagons...";
-            const hexRequests = [];
-
-            // Converts Lat/Lon to Mercator X/Y (Meters)
-            function toMercator(lat, lon) {
-                const r = 6378137; // Earth Radius
-                const x = r * (lon * Math.PI / 180);
-                const y = r * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
-                return [x, y];
+            // Clear previous hex layer group if exists
+            if (window.hexLayerGroup) {
+                map.removeLayer(window.hexLayerGroup);
             }
 
-            // Converts Mercator X/Y to Lat/Lon
-            function toLatLon(x, y) {
-                const r = 6378137;
-                const lon = (x / r) * (180 / Math.PI);
-                const lat = (2 * Math.atan(Math.exp(y / r)) - Math.PI / 2) * (180 / Math.PI);
-                return [lat, lon];
-            }
+            // We'll use separate layer groups for different states
+            const hexLayers = {}; // key -> layer reference
+            const hexLayerGroup = L.layerGroup().addTo(map);
+            window.hexLayerGroup = hexLayerGroup; // Store globally for cleanup
 
-            const centerMerc = toMercator(centerLat, centerLon); // [x, y]
-            const hexSizeMeters = hexSize * 1000; // Radius in Meters
+            const hexSizeMeters = hexSize * 1000;
+            const centerPt = turf.point([centerLon, centerLat]);
+            const centerMerc = turf.toMercator(centerPt).geometry.coordinates;
+            const destPt = turf.point([destLon, destLat]);
+            const destMerc = turf.toMercator(destPt).geometry.coordinates;
 
-            // Polygon Generator in Mercator
-            // Pointy Topped Hexagon
+            // Helper: Get hex polygon vertices in Mercator then convert to WGS84
             function getHexPolyMerc(cx, cy) {
                 const verts = [];
                 for (let i = 0; i < 6; i++) {
-                    const angle_deg = 60 * i - 30;
-                    const angle_rad = angle_deg * Math.PI / 180;
-                    // Simple 2D Plane Math
+                    const angle_rad = (60 * i - 30) * Math.PI / 180;
                     const vx = cx + hexSizeMeters * Math.cos(angle_rad);
                     const vy = cy + hexSizeMeters * Math.sin(angle_rad);
-                    // Convert back to LatLon for Leaflet
-                    const ll = toLatLon(vx, vy);
-                    verts.push([ll[1], ll[0]]); // GeoJSON expects [Lon, Lat]
+                    const pt = turf.toWgs84(turf.point([vx, vy]));
+                    verts.push([pt.geometry.coordinates[1], pt.geometry.coordinates[0]]); // [lat, lon] for Leaflet
                 }
-                verts.push(verts[0]);
                 return verts;
             }
 
-            for (let q = -radius; q <= radius; q++) {
-                for (let r = -radius; r <= radius; r++) {
-                    if (Math.abs(q) + Math.abs(r) + Math.abs(-q - r) <= radius) {
-                        // Pointy Topped Axial to Cartesian (Meters)
-                        // x = size * sqrt(3) * (q + r/2)
-                        // y = size * 3/2 * r
-
-                        const x_off = hexSizeMeters * Math.sqrt(3) * (q + r / 2);
-                        const y_off = hexSizeMeters * (3 / 2) * r;
-
-                        // Add to Center Mercator
-                        const hx = centerMerc[0] + x_off;
-                        const hy = centerMerc[1] + y_off; // Mercator Y increases North, same as Offset
-
-                        const ll = toLatLon(hx, hy); // [lat, lon]
-
-                        // Cache key (using Lat/Lon)
-                        const key = getCacheKey(ll[0], ll[1], destLat, destLon);
-
-                        hexRequests.push({
-                            centerLL: ll, // [lat, lon]
-                            mercX: hx,
-                            mercY: hy,
-                            key: key,
-                            time: null
-                        });
-                    }
-                }
+            // Helper: Convert axial (q, r) to Mercator coordinates
+            function axialToMerc(q, r) {
+                const x_off = hexSizeMeters * Math.sqrt(3) * (q + r / 2);
+                const y_off = hexSizeMeters * (3 / 2) * r;
+                return [centerMerc[0] + x_off, centerMerc[1] + y_off];
             }
 
-            // 2. Check Cache
-            statusTxt.innerText = "Checking Database Cache...";
-            const keys = hexRequests.map(x => x.key);
-            const cacheData = await fetchCacheBatch(keys);
+            // Helper: Get hex key from q, r
+            function hexKey(q, r) {
+                return `${q},${r}`;
+            }
 
-            let missing = 0;
-            hexRequests.forEach(req => {
-                if (cacheData[req.key] !== undefined) req.time = parseFloat(cacheData[req.key]);
-                else missing++;
-            });
+            // Helper: Hex distance (for heuristic)
+            function hexDist(q1, r1, q2, r2) {
+                return (Math.abs(q1 - q2) + Math.abs(r1 - r2) + Math.abs((-q1 - r1) - (-q2 - r2))) / 2;
+            }
 
-            // Draw Cached
-            hexRequests.filter(r => r.time !== null).forEach(r => {
-                // Generate Poly in Mercator domain, then project to lat/lon for perfectly aligned drawings
-                const poly = getHexPolyMerc(r.mercX, r.mercY);
-                geoJsonLayer.addData({
-                    type: "Feature", properties: { driving_time: r.time },
-                    geometry: { type: "Polygon", coordinates: [poly] } // poly is [[lon,lat]...]
-                });
-            });
+            // Find which hex the destination is in
+            function findDestHex() {
+                const dx = destMerc[0] - centerMerc[0];
+                const dy = destMerc[1] - centerMerc[1];
+                // Inverse of axial to offset
+                const r = Math.round(dy / (hexSizeMeters * 1.5));
+                const q = Math.round((dx / (hexSizeMeters * Math.sqrt(3))) - r / 2);
+                return { q, r };
+            }
 
-            if (missing === 0) {
-                finish("Done (All Cached)");
+            const destHex = findDestHex();
+            statusTxt.innerText = `Target hex: (${destHex.q}, ${destHex.r})`;
+
+            // Check if destination is within radius
+            const destHexDist = hexDist(0, 0, destHex.q, destHex.r);
+            if (destHexDist > radius) {
+                statusTxt.innerText = `Destination outside grid! Distance: ${destHexDist} > radius ${radius}`;
+                btn.disabled = false;
+                btn.innerText = "Generate Map";
+                updateStats(0, 0, 0, '-', 'Out of Range');
                 return;
             }
 
-            // 3. Fetch Missing
-            statusTxt.innerText = `Fetching ${missing} routes...`;
-            const toFetch = hexRequests.filter(r => r.time === null);
-            let done = 0;
+            // A* DATA STRUCTURES
+            const openSet = []; // Priority queue: [{q, r, f, g, h}]
+            const cameFrom = {}; // key -> {q, r} parent
+            const gScore = {}; // key -> cost from start
+            const visited = new Set();
+            const hexData = {}; // key -> {mercX, mercY, driving_time, state}
+
+            // Add hex to visualization
+            function addHexToMap(q, r, state, drivingTime = null, gCost = null) {
+                const key = hexKey(q, r);
+                const [mx, my] = axialToMerc(q, r);
+                const verts = getHexPolyMerc(mx, my);
+
+                // Remove existing layer if present
+                if (hexLayers[key]) {
+                    hexLayerGroup.removeLayer(hexLayers[key]);
+                }
+
+                // Determine style based on state
+                let style = {};
+                switch (state) {
+                    case 'queued':
+                        style = { color: '#3b82f6', weight: 2, fillColor: '#93c5fd', fillOpacity: 0.4 };
+                        break;
+                    case 'exploring':
+                        style = { color: '#f59e0b', weight: 3, fillColor: '#fbbf24', fillOpacity: 0.8 };
+                        break;
+                    case 'visited':
+                        style = { color: '#ffffff', weight: 1, fillColor: getColor(drivingTime), fillOpacity: 0.7 };
+                        break;
+                    case 'path':
+                        style = { color: '#dc2626', weight: 4, fillColor: getColor(drivingTime), fillOpacity: 0.9 };
+                        break;
+                }
+
+                const layer = L.polygon(verts, style);
+                const popupContent = `
+                    <div class="text-sm">
+                        <b>Hex:</b> (${q}, ${r})<br>
+                        <b>State:</b> ${state}<br>
+                        <b>g(cost):</b> ${gCost !== null ? gCost : 'N/A'}<br>
+                        <b>Driving Time:</b> ${drivingTime ? drivingTime.toFixed(1) + ' min' : 'N/A'}
+                    </div>
+                `;
+                layer.bindPopup(popupContent);
+                layer.addTo(hexLayerGroup);
+                hexLayers[key] = layer;
+                hexData[key] = { mercX: mx, mercY: my, driving_time: drivingTime, state, q, r };
+            }
+
+            // Priority queue helpers (min-heap by f-score)
+            function pushOpen(node) {
+                openSet.push(node);
+                openSet.sort((a, b) => a.f - b.f);
+            }
+            function popOpen() {
+                return openSet.shift();
+            }
+
+            // Get neighbors in axial coordinate system
+            function getNeighbors(q, r) {
+                const dirs = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+                return dirs.map(([dq, dr]) => ({ q: q + dq, r: r + dr }));
+            }
+
+            // Check if hex is valid (within radius)
+            function isValid(q, r) {
+                return hexDist(0, 0, q, r) <= radius;
+            }
+
+            // Fetch cache for a hex
+            async function getDrivingTime(q, r) {
+                const [mx, my] = axialToMerc(q, r);
+                const hPt = turf.toWgs84(turf.point([mx, my]));
+                const hLon = hPt.geometry.coordinates[0];
+                const hLat = hPt.geometry.coordinates[1];
+                const key = getCacheKey(hLat, hLon, destLat, destLon);
+
+                // Try cache first
+                try {
+                    const cacheData = await fetchCacheBatch([key]);
+                    if (cacheData[key] !== undefined) {
+                        return parseFloat(cacheData[key]);
+                    }
+                } catch (e) { }
+
+                // Fetch from OSRM
+                const time = await fetchOSRM([hLon, hLat], [destLon, destLat]);
+                if (time !== null) {
+                    // Save to cache
+                    await saveCacheBatch({ [key]: time });
+                }
+                return time;
+            }
+
+            // ========== A* ALGORITHM ==========
+            updateStats(0, 1, 0, '-', 'Starting A*');
+
+            // Initialize with start node
+            const startH = hexDist(0, 0, destHex.q, destHex.r);
+            gScore[hexKey(0, 0)] = 0;
+            pushOpen({ q: 0, r: 0, f: startH, g: 0, h: startH });
+            addHexToMap(0, 0, 'queued', null, 0);
+
+            let step = 0;
+            let pathFound = false;
             const newCache = {};
 
-            for (const req of toFetch) {
-                await queue.add(async () => {
-                    // OSRM expects [lon, lat]
-                    // req.centerLL is [lat, lon]
-                    const time = await fetchOSRM([req.centerLL[1], req.centerLL[0]], [destLat, destLon]);
+            while (openSet.length > 0) {
+                // Check for stop request
+                if (window.stopRequested) {
+                    updateStats(step, 0, visited.size, '-', 'Stopped');
+                    statusTxt.innerText = 'Generation stopped by user';
+                    break;
+                }
 
-                    if (time !== null) {
-                        newCache[req.key] = time;
-                        const poly = getHexPolyMerc(req.mercX, req.mercY);
-                        geoJsonLayer.addData({
-                            type: "Feature", properties: { driving_time: time },
-                            geometry: { type: "Polygon", coordinates: [poly] }
-                        });
+                step++;
+                const current = popOpen();
+                const currentKey = hexKey(current.q, current.r);
+
+                // Update stats
+                updateStats(step, openSet.length, visited.size, '-', 'Exploring...');
+                statusTxt.innerText = `Exploring (${current.q}, ${current.r}) - Step ${step}`;
+
+                // Visualize current as exploring
+                addHexToMap(current.q, current.r, 'exploring', null, current.g);
+                await new Promise(r => setTimeout(r, getSpeed()));
+
+                // Get driving time for this hex
+                const drivingTime = await getDrivingTime(current.q, current.r);
+
+                // Mark as visited
+                visited.add(currentKey);
+                addHexToMap(current.q, current.r, 'visited', drivingTime, current.g);
+                pBar.style.width = ((visited.size / (3 * radius * (radius + 1) + 1)) * 100) + "%";
+
+                // Mark destination hex specially but DON'T stop - continue exploring entire grid
+                if (current.q === destHex.q && current.r === destHex.r) {
+                    pathFound = true;
+                    // Just note that we found the target, but keep going
+                }
+
+                // Explore neighbors
+                const neighbors = getNeighbors(current.q, current.r);
+                for (const neighbor of neighbors) {
+                    const nKey = hexKey(neighbor.q, neighbor.r);
+
+                    // Skip if invalid or already visited
+                    if (!isValid(neighbor.q, neighbor.r)) continue;
+                    if (visited.has(nKey)) continue;
+
+                    const tentativeG = current.g + 1; // Each step costs 1
+
+                    if (gScore[nKey] === undefined || tentativeG < gScore[nKey]) {
+                        // This is a better path
+                        cameFrom[nKey] = { q: current.q, r: current.r };
+                        gScore[nKey] = tentativeG;
+                        const h = hexDist(neighbor.q, neighbor.r, destHex.q, destHex.r);
+                        const f = tentativeG + h;
+
+                        // Add to open set if not already there
+                        const inOpen = openSet.find(n => n.q === neighbor.q && n.r === neighbor.r);
+                        if (!inOpen) {
+                            pushOpen({ q: neighbor.q, r: neighbor.r, f, g: tentativeG, h });
+                            addHexToMap(neighbor.q, neighbor.r, 'queued', null, tentativeG);
+                        }
                     }
-                    done++;
-                    pBar.style.width = (done / missing * 100) + "%";
-                    await new Promise(r => setTimeout(r, 20));
-                });
+                }
+
+                // Small delay for visualization
+                await new Promise(r => setTimeout(r, 10));
             }
 
-            // 4. Save
-            if (Object.keys(newCache).length > 0) {
-                statusTxt.innerText = "Saving to Database...";
-                await saveCacheBatch(newCache);
+            // Reconstruct and highlight path
+            if (pathFound) {
+                const path = [];
+                let curr = destHex;
+                while (curr) {
+                    path.push(curr);
+                    const key = hexKey(curr.q, curr.r);
+                    curr = cameFrom[key];
+                }
+                path.reverse();
+
+                updateStats(step, 0, visited.size, path.length, 'Highlighting Path');
+                statusTxt.innerText = `Found path with ${path.length} hexagons!`;
+
+                // Animate path highlight
+                for (const hex of path) {
+                    const key = hexKey(hex.q, hex.r);
+                    const data = hexData[key];
+                    addHexToMap(hex.q, hex.r, 'path', data?.driving_time, gScore[key]);
+                    await new Promise(r => setTimeout(r, getSpeed() / 2));
+                }
+
+                updateStats(step, 0, visited.size, path.length, 'Complete!');
+                statusTxt.innerText = `Path found: ${path.length} hexagons in ${step} steps`;
+            } else {
+                updateStats(step, 0, visited.size, 'None', 'No Path');
+                statusTxt.innerText = 'No path found to destination!';
             }
 
-            finish("Generation Complete");
-
-            function finish(msg) {
-                statusTxt.innerText = msg;
-                btn.disabled = false;
-                btn.innerText = "Generate Map";
-                setTimeout(() => document.getElementById('progress').classList.add('hidden'), 2000);
-            }
+            // Finish
+            btn.disabled = false;
+            btn.innerText = "Generate Map";
+            document.getElementById('stopBtn').classList.add('hidden');
+            setTimeout(() => document.getElementById('progress').classList.add('hidden'), 3000);
         }
 
         async function saveConfigPHP() {
@@ -504,8 +1076,8 @@
                 center_lon: parseFloat(document.getElementById('center_lon').value),
                 dest_lat: parseFloat(document.getElementById('dest_lat').value),
                 dest_lon: parseFloat(document.getElementById('dest_lon').value),
-                radius: parseInt(document.getElementById('radius').value),
-                hex_size: parseFloat(document.getElementById('hex_size').value)
+                radius: parseInt(document.getElementById('radius_input').value),
+                hex_size: parseFloat(document.getElementById('hex_size_input').value)
             };
             const btn = document.querySelector('button[onclick="saveConfigPHP()"]');
             const originalText = btn.innerText;
@@ -559,13 +1131,19 @@
                         document.getElementById('radius').value = item.radius;
                         if (item.hex_size) document.getElementById('hex_size').value = item.hex_size;
 
+                        // Sync inputs
+                        document.getElementById('radius_input').value = item.radius;
+                        if (item.hex_size) document.getElementById('hex_size_input').value = item.hex_size;
+
                         updateCounts();
-                        document.getElementById('hex_size').dispatchEvent(new Event('input')); // Update UI val
 
                         // Move visual markers
                         markers.center.setLatLng([item.center_lat, item.center_lon]);
                         markers.dest.setLatLng([item.dest_lat, item.dest_lon]);
                         map.setView([item.center_lat, item.center_lon], 11);
+
+                        // Auto-generate the map
+                        generateGrid();
                     };
                     list.appendChild(li);
                 });
@@ -608,6 +1186,143 @@
 
         // Load init
         loadHistoryPHP();
+
+        // ========== DARK MODE ==========
+        let darkTileLayer = null;
+        let lightTileLayer = null;
+
+        function toggleDarkMode() {
+            const body = document.body;
+            const isDark = body.classList.toggle('dark-mode');
+
+            // Toggle icons
+            document.getElementById('sunIcon').classList.toggle('hidden', !isDark);
+            document.getElementById('moonIcon').classList.toggle('hidden', isDark);
+
+            // Switch map tiles
+            if (isDark) {
+                if (lightTileLayer) map.removeLayer(lightTileLayer);
+                darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; CartoDB &copy; OSRM'
+                }).addTo(map);
+            } else {
+                if (darkTileLayer) map.removeLayer(darkTileLayer);
+                lightTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; CartoDB &copy; OSRM'
+                }).addTo(map);
+            }
+
+            // Save preference
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Check saved preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            toggleDarkMode();
+        }
+
+        // ========== COLLAPSIBLE PANEL ==========
+        function toggleAlgoPanel() {
+            const header = document.querySelector('#algo_panel .collapsible-header');
+            const content = document.getElementById('algo_content');
+            header.classList.toggle('open');
+            content.classList.toggle('open');
+        }
+
+        // ========== MOBILE MENU ==========
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('mobileBackdrop');
+            sidebar.classList.toggle('open');
+            backdrop.classList.toggle('open');
+        }
+
+        // ========== STOP GENERATION ==========
+        window.stopRequested = false;
+
+        function stopGeneration() {
+            window.stopRequested = true;
+            document.getElementById('stat_status').innerText = 'Stopping...';
+            document.getElementById('status_text').innerText = 'Stopping generation...';
+        }
+
+        // ========== GEOCODING ==========
+        async function searchDest() {
+            const query = document.getElementById('dest_search').value;
+            if (!query) return;
+
+            const btn = document.querySelector('button[onclick="searchDest()"]');
+            const originalInner = btn.innerHTML;
+            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+
+                    document.getElementById('dest_lat').value = lat.toFixed(4);
+                    document.getElementById('dest_lon').value = lon.toFixed(4);
+
+                    markers.dest.setLatLng([lat, lon]);
+                    map.setView([lat, lon], 13);
+
+                    // Update UI val
+                    btn.classList.add('text-green-500');
+                    setTimeout(() => btn.classList.remove('text-green-500'), 2000);
+                } else {
+                    alert('Location not found');
+                }
+            } catch (e) {
+                alert('Error searching location');
+                console.error(e);
+            }
+            btn.innerHTML = originalInner;
+        }
+
+
+        //Generic search function
+        async function searchLocation(type) {
+            const inputId = type === 'start' ? 'start_search' : 'dest_search';
+            const latId = type === 'start' ? 'center_lat' : 'dest_lat';
+            const lonId = type === 'start' ? 'center_lon' : 'dest_lon';
+
+            const query = document.getElementById(inputId).value;
+            if (!query) return;
+
+            const btn = document.querySelector(`button[onclick="searchLocation('${type}')"]`);
+            const originalInner = btn.innerHTML;
+            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+
+                    document.getElementById(latId).value = lat.toFixed(4);
+                    document.getElementById(lonId).value = lon.toFixed(4);
+
+                    const marker = type === 'start' ? markers.center : markers.dest;
+                    marker.setLatLng([lat, lon]);
+                    map.setView([lat, lon], 13);
+
+                    // Visual feedback
+                    btn.classList.add('text-green-500');
+                    setTimeout(() => btn.classList.remove('text-green-500'), 2000);
+                } else {
+                    alert('Location not found');
+                }
+            } catch (e) {
+                alert('Error searching location');
+                console.error(e);
+            }
+            btn.innerHTML = originalInner;
+        }
 
     </script>
 </body>
