@@ -4,154 +4,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HexMap Client-Side</title>
-    <!-- Tailwind CSS -->
+    <title>HexMap Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Turf.js for Geospatial Math -->
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <style>
         #map {
             height: 100vh;
             width: 100%;
         }
+
+        input[type=range]::-webkit-slider-thumb {
+            background: #2563eb;
+            border: 2px solid #fff;
+            height: 18px;
+            width: 18px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        input[type=range]::-moz-range-thumb {
+            background: #2563eb;
+            border: 2px solid #fff;
+            height: 18px;
+            width: 18px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 
-<body class="flex h-screen bg-gray-100 overflow-hidden">
+<body class="flex h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200 overflow-hidden">
+    <div id="root" class="w-full"></div>
 
-    <!-- Sidebar -->
-    <div class="w-1/4 min-w-[350px] bg-white shadow-xl z-20 flex flex-col p-6 overflow-y-auto">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">HexMap Client (Cached)</h1>
-
-        <div class="space-y-4">
-            <!-- Center Point -->
-            <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Start Point (Center)</label>
-                <div class="flex gap-2">
-                    <input type="number" id="center_lat" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                    <input type="number" id="center_lon" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                </div>
-                <div class="text-xs text-blue-500 mt-1 cursor-pointer hover:underline" onclick="enablePick('center')">📍
-                    Click to pick</div>
-            </div>
-
-            <!-- Dest Point -->
-            <div class="p-4 bg-red-50 rounded-lg border border-red-100">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Destination</label>
-                <div class="flex gap-2">
-                    <input type="number" id="dest_lat" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                    <input type="number" id="dest_lon" step="0.0001" class="w-1/2 p-2 border rounded text-sm">
-                </div>
-                <div class="text-xs text-red-500 mt-1 cursor-pointer hover:underline" onclick="enablePick('dest')">📍
-                    Click to pick</div>
-            </div>
-
-            <!-- Parameters -->
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Radius (Hexagons)</label>
-                <input type="range" id="radius" min="2" max="15" value="6"
-                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                <div class="text-right text-xs text-gray-500"><span id="radius_val">6</span> (approx <span
-                        id="hex_count">127</span> hexs)</div>
-            </div>
-
-            <button onclick="generateGrid()" id="calcBtn"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition shadow-lg">
-                Generieren
-            </button>
-            <div id="status_text" class="text-xs text-gray-500 mt-1 text-center h-4"></div>
-            <div id="progress" class="hidden w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                <div id="progress_bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
-            </div>
-
-            <hr class="border-gray-200 my-2">
-
-            <div class="flex gap-2">
-                <input type="text" id="save_name" placeholder="Save Name (Required for PHP)"
-                    class="flex-grow p-2 border rounded text-sm">
-                <button onclick="saveConfigPHP()"
-                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow">Save (PHP)</button>
-            </div>
-        </div>
-
-        <!-- History -->
-        <div class="mt-8">
-            <h3 class="font-bold text-gray-700 mb-2">PHP Database History</h3>
-            <ul id="history_list" class="space-y-2 text-sm text-gray-600">
-                <li><button class="text-blue-500 underline" onclick="loadHistoryPHP()">Load History</button></li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Map Container -->
-    <div class="flex-grow relative">
-        <div id="map"></div>
-    </div>
-
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // Init Map
-        const map = L.map('map').setView([49.8734, 6.1727], 11);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap, © CartoDB'
-        }).addTo(map);
+    <script type="text/babel">
+        const { useEffect, useRef, useState, useMemo } = React;
 
-        let geoJsonLayer = L.geoJSON(null).addTo(map);
-        let pickMode = null;
-
-        let markers = {
-            center: L.marker([49.8734, 6.1727], { draggable: true }).addTo(map),
-            dest: L.marker([49.8734, 6.1727], {
-                draggable: true, icon: L.icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41]
-                })
-            }).addTo(map)
-        };
-
-        // Defaults
-        document.getElementById('center_lat').value = 49.8734;
-        document.getElementById('center_lon').value = 6.1727;
-        document.getElementById('dest_lat').value = 49.8734;
-        document.getElementById('dest_lon').value = 6.1727;
-
-        document.getElementById('radius').oninput = function () {
-            const r = parseInt(this.value);
-            document.getElementById('radius_val').innerText = r;
-            const count = 3 * r * (r + 1) + 1;
-            document.getElementById('hex_count').innerText = count;
-        }
-
-        // --- CORE LOGIC ---
-
-        function getColor(d) {
-            if (d === null || d === undefined) return 'gray';
-            const max = 60;
-            const p = Math.min(d / max, 1);
-            const r = Math.round(p * 255);
-            const g = Math.round((1 - p) * 255);
-            return `rgb(${r},${g},0)`;
-        }
-
-        function getCacheKey(slat, slon, dlat, dlon) {
-            return `${slat.toFixed(6)}_${slon.toFixed(6)}_${dlat.toFixed(6)}_${dlon.toFixed(6)}`;
-        }
-
-        // Rate Limited Queue
-        class RequestQueue {
-            constructor(concurrency = 4) {
+        const queue = new class RequestQueue {
+            constructor(concurrency = 5) {
                 this.concurrency = concurrency;
                 this.pending = 0;
                 this.queue = [];
             }
             async add(fn) {
-                if (this.pending >= this.concurrency) {
-                    await new Promise(resolve => this.queue.push(resolve));
-                }
+                if (this.pending >= this.concurrency) await new Promise(resolve => this.queue.push(resolve));
                 this.pending++;
                 try {
                     return await fn();
@@ -160,8 +60,46 @@
                     if (this.queue.length > 0) this.queue.shift()();
                 }
             }
-        }
-        const queue = new RequestQueue(5);
+        }();
+
+        const getColor = (d) => {
+            if (d === null || d === undefined) return 'gray';
+            const max = 60;
+            const p = Math.min(d / max, 1);
+            const r = Math.round(p * 255);
+            const g = Math.round((1 - p) * 255);
+            return `rgb(${r},${g},0)`;
+        };
+
+        const getCacheKey = (slat, slon, dlat, dlon) => `${slat.toFixed(6)}_${slon.toFixed(6)}_${dlat.toFixed(6)}_${dlon.toFixed(6)}`;
+
+        const axialToOffset = (q, r, size) => {
+            const x = size * Math.sqrt(3) * (q + r / 2);
+            const y = size * 1.5 * r;
+            return { x, y };
+        };
+
+        const offsetToLatLon = (originList, offX, offY) => {
+            const origin = turf.point(originList);
+            const d = Math.sqrt(offX * offX + offY * offY);
+            if (d === 0) return originList;
+            const bearing = (Math.atan2(offX, offY) * 180 / Math.PI);
+            const dest = turf.destination(origin, d, bearing, { units: 'kilometers' });
+            return dest.geometry.coordinates;
+        };
+
+        const getHexPoly = (center, size) => {
+            const verts = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = 60 * i - 30;
+                const rad = angle * Math.PI / 180;
+                const ox = size * Math.cos(rad);
+                const oy = size * Math.sin(rad);
+                verts.push(offsetToLatLon(center, ox, oy));
+            }
+            verts.push(verts[0]);
+            return verts;
+        };
 
         async function fetchOSRM(source, dest) {
             const url = `https://router.project-osrm.org/route/v1/driving/${source[0]},${source[1]};${dest[0]},${dest[1]}?overview=false`;
@@ -169,228 +107,428 @@
                 const res = await fetch(url);
                 if (res.status !== 200) return null;
                 const data = await res.json();
-                if (data.routes && data.routes.length > 0) {
-                    return data.routes[0].duration / 60.0;
-                }
+                if (data.routes && data.routes.length > 0) return data.routes[0].duration / 60.0;
             } catch (e) { console.error(e); }
             return null;
         }
 
         async function fetchCacheBatch(keys) {
             try {
-                const res = await fetch('cache_layer.php', {
-                    method: 'POST', body: JSON.stringify({ action: 'get', data: keys })
-                });
+                const res = await fetch('cache_layer.php', { method: 'POST', body: JSON.stringify({ action: 'get', data: keys }) });
                 return await res.json();
             } catch (e) { console.error("Cache Fetch Error", e); return {}; }
         }
 
         async function saveCacheBatch(data) {
             try {
-                await fetch('cache_layer.php', {
-                    method: 'POST', body: JSON.stringify({ action: 'set', data: data })
-                });
+                await fetch('cache_layer.php', { method: 'POST', body: JSON.stringify({ action: 'set', data }) });
             } catch (e) { console.error("Cache Save Error", e); }
         }
 
-        async function generateGrid() {
-            const center = [parseFloat(document.getElementById('center_lon').value), parseFloat(document.getElementById('center_lat').value)];
-            const dest = [parseFloat(document.getElementById('dest_lon').value), parseFloat(document.getElementById('dest_lat').value)];
-            // Use fixed precision for cache keys to ensure hits
-            const destLat = parseFloat(document.getElementById('dest_lat').value);
-            const destLon = parseFloat(document.getElementById('dest_lon').value);
+        const CooldownButton = ({ onClick, disabled, label, secondaryLabel }) => (
+            <button
+                onClick={onClick}
+                disabled={disabled}
+                className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+                <span>{label}</span>
+                {secondaryLabel && <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">{secondaryLabel}</span>}
+            </button>
+        );
 
-            const radius = parseInt(document.getElementById('radius').value);
-            const hexSize = 0.4;
+        function AStarGame() {
+            const size = 10;
+            const [grid, setGrid] = useState(() => buildGrid());
+            const [path, setPath] = useState([]);
+            const [explored, setExplored] = useState(new Set());
 
-            const btn = document.getElementById('calcBtn');
-            const pBar = document.getElementById('progress_bar');
-            const statusTxt = document.getElementById('status_text');
-            document.getElementById('progress').classList.remove('hidden');
-            btn.disabled = true;
-
-            // 1. Generate All Points
-            const hexRequests = [];
-
-            function axialToOffset(q, r, size) {
-                const x = size * Math.sqrt(3) * (q + r / 2);
-                const y = size * 1.5 * r;
-                return { x, y };
-            }
-            function offsetToLatLon(originList, offX, offY) {
-                const origin = turf.point(originList);
-                const d = Math.sqrt(offX * offX + offY * offY);
-                if (d === 0) return originList;
-                const bearing = (Math.atan2(offX, offY) * 180 / Math.PI);
-                const dest = turf.destination(origin, d, bearing, { units: 'kilometers' });
-                return dest.geometry.coordinates;
-            }
-            function getHexPoly(center, size) {
-                const verts = [];
-                for (let i = 0; i < 6; i++) {
-                    const angle = 60 * i - 30;
-                    const rad = angle * Math.PI / 180;
-                    const ox = size * Math.cos(rad);
-                    const oy = size * Math.sin(rad);
-                    verts.push(offsetToLatLon(center, ox, oy));
-                }
-                verts.push(verts[0]);
-                return verts;
+            function buildGrid() {
+                const cells = Array.from({ length: size }, (_, r) => Array.from({ length: size }, (_, c) => ({ r, c, wall: Math.random() < 0.15 })));
+                cells[0][0].wall = false;
+                cells[size - 1][size - 1].wall = false;
+                return cells;
             }
 
-            statusTxt.innerText = "Calculating Grid...";
-            for (let q = -radius; q <= radius; q++) {
-                for (let r = -radius; r <= radius; r++) {
-                    if (Math.abs(q) + Math.abs(r) + Math.abs(-q - r) <= radius * 2) {
-                        const off = axialToOffset(q, r, hexSize);
-                        const hCenter = offsetToLatLon(center, off.x, off.y);
-                        // Use lat/lon for key
-                        const key = getCacheKey(hCenter[1], hCenter[0], destLat, destLon);
-                        hexRequests.push({ q, r, center: hCenter, key: key, time: null });
+            const runAStar = () => {
+                const start = { r: 0, c: 0 };
+                const goal = { r: size - 1, c: size - 1 };
+                const open = [{ ...start, g: 0, f: 0 }];
+                const cameFrom = {};
+                const cost = { [`${start.r},${start.c}`]: 0 };
+                const visited = new Set();
+
+                const heuristic = (a, b) => Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
+                const neighbors = (node) => {
+                    const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+                    return steps
+                        .map(([dr, dc]) => ({ r: node.r + dr, c: node.c + dc }))
+                        .filter(n => n.r >= 0 && n.c >= 0 && n.r < size && n.c < size && !grid[n.r][n.c].wall);
+                };
+
+                while (open.length) {
+                    open.sort((a, b) => a.f - b.f);
+                    const current = open.shift();
+                    const key = `${current.r},${current.c}`;
+                    visited.add(key);
+                    if (current.r === goal.r && current.c === goal.c) break;
+
+                    for (const n of neighbors(current)) {
+                        const nk = `${n.r},${n.c}`;
+                        const tentativeG = cost[key] + 1;
+                        if (!(nk in cost) || tentativeG < cost[nk]) {
+                            cost[nk] = tentativeG;
+                            const f = tentativeG + heuristic(n, goal);
+                            cameFrom[nk] = key;
+                            if (!open.find(o => o.r === n.r && o.c === n.c)) {
+                                open.push({ ...n, g: tentativeG, f });
+                            }
+                        }
                     }
                 }
-            }
 
-            // 2. Check Cache
-            statusTxt.innerText = "Checking Cache...";
-            const keysToCheck = hexRequests.map(r => r.key);
-            // Chunk keys if too many (PHP post limit)
-            const cacheData = await fetchCacheBatch(keysToCheck);
-
-            let missingCount = 0;
-            hexRequests.forEach(req => {
-                if (cacheData[req.key] !== undefined) {
-                    req.time = parseFloat(cacheData[req.key]);
-                } else {
-                    missingCount++;
+                const pathNodes = [];
+                let currentKey = `${goal.r},${goal.c}`;
+                if (cameFrom[currentKey] || currentKey === `0,0`) {
+                    while (currentKey) {
+                        const [r, c] = currentKey.split(',').map(Number);
+                        pathNodes.unshift({ r, c });
+                        currentKey = cameFrom[currentKey];
+                    }
                 }
-            });
+                setExplored(visited);
+                setPath(pathNodes);
+            };
 
-            console.log(`Cache Hit: ${hexRequests.length - missingCount}, Missing: ${missingCount}`);
+            const regenerate = () => {
+                setGrid(buildGrid());
+                setPath([]);
+                setExplored(new Set());
+            };
 
-            // 3. Clear Map & Draw Cached Items immediately
-            if (geoJsonLayer) map.removeLayer(geoJsonLayer);
-            geoJsonLayer = L.geoJSON(null, {
-                style: f => ({
-                    fillColor: getColor(f.properties.driving_time),
-                    weight: 1, opacity: 1, color: 'white', fillOpacity: 0.6
-                }),
-                onEachFeature: (f, l) => l.bindPopup(`Time: ${f.properties.driving_time?.toFixed(1) || 'N/A'} min`)
-            }).addTo(map);
+            return (
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-xs uppercase text-indigo-600 font-semibold">Mini Game</p>
+                            <h3 className="font-bold text-gray-800">A* Pathfinding Demo</h3>
+                        </div>
+                        <button onClick={regenerate} className="text-xs text-indigo-700 hover:text-indigo-900">↻ Shuffle</button>
+                    </div>
+                    <p className="text-sm text-gray-600">Find a path from the top-left to the bottom-right while avoiding obstacles. Each run highlights explored cells and the optimal route.</p>
+                    <div className="grid grid-cols-10 gap-1">
+                        {grid.flat().map(cell => {
+                            const key = `${cell.r},${cell.c}`;
+                            const isStart = cell.r === 0 && cell.c === 0;
+                            const isGoal = cell.r === size - 1 && cell.c === size - 1;
+                            const onPath = path.some(p => p.r === cell.r && p.c === cell.c);
+                            const exploredClass = explored.has(key) ? 'bg-amber-200' : '';
+                            const classes = [
+                                'w-6 h-6 rounded-sm border border-slate-200 flex items-center justify-center text-[10px] font-semibold',
+                                cell.wall ? 'bg-slate-400' : 'bg-white',
+                                onPath ? 'bg-emerald-300 border-emerald-500' : '',
+                                exploredClass,
+                                isStart ? 'bg-blue-300 border-blue-500' : '',
+                                isGoal ? 'bg-rose-300 border-rose-500' : ''
+                            ].join(' ');
+                            return <div key={key} className={classes} title={key}></div>;
+                        })}
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={runAStar} className="flex-1 bg-indigo-600 text-white py-2 rounded-lg shadow hover:bg-indigo-700">Run A*</button>
+                        <button onClick={regenerate} className="flex-1 bg-slate-200 text-gray-800 py-2 rounded-lg shadow hover:bg-slate-300">Reset</button>
+                    </div>
+                    <div className="text-xs text-gray-500">Green = path, Amber = explored, Gray = wall.</div>
+                </div>
+            );
+        }
 
-            // Add cached items to map now
-            hexRequests.filter(r => r.time !== null).forEach(r => {
-                const poly = getHexPoly(r.center, hexSize);
-                geoJsonLayer.addData({
-                    "type": "Feature",
-                    "geometry": { "type": "Polygon", "coordinates": [poly] },
-                    "properties": { "driving_time": r.time }
+        function App() {
+            const [center, setCenter] = useState({ lat: 49.8734, lon: 6.1727 });
+            const [dest, setDest] = useState({ lat: 49.8734, lon: 6.1727 });
+            const [radius, setRadius] = useState(6);
+            const [hexSize, setHexSize] = useState(0.4);
+            const [status, setStatus] = useState('');
+            const [progress, setProgress] = useState(0);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [history, setHistory] = useState([]);
+            const [loadingHistory, setLoadingHistory] = useState(false);
+            const [saveName, setSaveName] = useState('');
+            const [saving, setSaving] = useState(false);
+            const [pickMode, setPickMode] = useState(null);
+            const [hexFeatures, setHexFeatures] = useState([]);
+            const pickModeRef = useRef(null);
+            const mapRef = useRef(null);
+            const layerRef = useRef(null);
+            const markersRef = useRef({ center: null, dest: null });
+            const saveCooldownRef = useRef(0);
+            const historyCooldownRef = useRef(0);
+
+            const hexCount = useMemo(() => 3 * radius * (radius + 1) + 1, [radius]);
+
+            useEffect(() => { pickModeRef.current = pickMode; }, [pickMode]);
+
+            useEffect(() => {
+                if (mapRef.current) return;
+                const map = L.map('map').setView([center.lat, center.lon], 11);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap, © CartoDB' }).addTo(map);
+                const centerMarker = L.marker([center.lat, center.lon], { draggable: true }).addTo(map);
+                const destMarker = L.marker([dest.lat, dest.lon], {
+                    draggable: true,
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                        iconSize: [25, 41], iconAnchor: [12, 41]
+                    })
+                }).addTo(map);
+
+                centerMarker.on('dragend', (e) => setCenter({ lat: e.target.getLatLng().lat, lon: e.target.getLatLng().lng }));
+                destMarker.on('dragend', (e) => setDest({ lat: e.target.getLatLng().lat, lon: e.target.getLatLng().lng }));
+
+                map.on('click', (e) => {
+                    if (pickModeRef.current === 'center') {
+                        setCenter({ lat: parseFloat(e.latlng.lat.toFixed(4)), lon: parseFloat(e.latlng.lng.toFixed(4)) });
+                    } else if (pickModeRef.current === 'dest') {
+                        setDest({ lat: parseFloat(e.latlng.lat.toFixed(4)), lon: parseFloat(e.latlng.lng.toFixed(4)) });
+                    }
+                    setPickMode(null);
                 });
-            });
 
-            // 4. Fetch Missing
-            statusTxt.innerText = `Fetching ${missingCount} from OSRM...`;
-            let completed = 0;
-            const newCacheData = {}; // For batch saving
+                mapRef.current = map;
+                markersRef.current = { center: centerMarker, dest: destMarker };
+                layerRef.current = L.geoJSON(null, {
+                    style: f => ({
+                        fillColor: getColor(f.properties.driving_time),
+                        weight: 1,
+                        opacity: 1,
+                        color: 'white',
+                        fillOpacity: 0.6
+                    }),
+                    onEachFeature: (f, l) => l.bindPopup(`Time: ${f.properties.driving_time?.toFixed(1) || 'N/A'} min`)
+                }).addTo(map);
+            }, []);
 
-            const missingReqs = hexRequests.filter(r => r.time === null);
-            for (const req of missingReqs) {
-                await queue.add(async () => {
-                    const dt = await fetchOSRM(req.center, dest);
+            useEffect(() => {
+                const { center: c, dest: d } = markersRef.current;
+                if (c) c.setLatLng([center.lat, center.lon]);
+                if (d) d.setLatLng([dest.lat, dest.lon]);
+            }, [center, dest]);
 
-                    if (dt !== null) {
-                        newCacheData[req.key] = dt;
+            useEffect(() => {
+                if (!layerRef.current) return;
+                layerRef.current.clearLayers();
+                hexFeatures.forEach(f => layerRef.current.addData(f));
+            }, [hexFeatures]);
 
-                        // Add to map live
-                        const poly = getHexPoly(req.center, hexSize);
-                        geoJsonLayer.addData({
-                            "type": "Feature",
-                            "geometry": { "type": "Polygon", "coordinates": [poly] },
-                            "properties": { "driving_time": dt }
+            const guardCooldown = (ref, ms) => {
+                const now = Date.now();
+                if (now - ref.current < ms) return false;
+                ref.current = now;
+                return true;
+            };
+
+            const handleGenerate = async () => {
+                setIsGenerating(true);
+                setStatus('Calculating grid...');
+                setProgress(0);
+
+                try {
+                    const radiusVal = radius;
+                    const hexSizeVal = hexSize;
+                    const centerArr = [center.lon, center.lat];
+                    const destArr = [dest.lon, dest.lat];
+                    const destLat = dest.lat;
+                    const destLon = dest.lon;
+
+                    const hexRequests = [];
+                    for (let q = -radiusVal; q <= radiusVal; q++) {
+                        for (let r = -radiusVal; r <= radiusVal; r++) {
+                            if (Math.abs(q) + Math.abs(r) + Math.abs(-q - r) <= radiusVal * 2) {
+                                const off = axialToOffset(q, r, hexSizeVal);
+                                const hCenter = offsetToLatLon(centerArr, off.x, off.y);
+                                const key = getCacheKey(hCenter[1], hCenter[0], destLat, destLon);
+                                hexRequests.push({ q, r, center: hCenter, key, time: null });
+                            }
+                        }
+                    }
+
+                    setStatus('Checking cache...');
+                    const cacheData = await fetchCacheBatch(hexRequests.map(r => r.key));
+                    hexRequests.forEach(req => {
+                        if (cacheData[req.key] !== undefined) req.time = parseFloat(cacheData[req.key]);
+                    });
+
+                    const cachedFeatures = hexRequests.filter(r => r.time !== null).map(req => ({
+                        type: 'Feature',
+                        geometry: { type: 'Polygon', coordinates: [getHexPoly(req.center, hexSizeVal)] },
+                        properties: { driving_time: req.time }
+                    }));
+                    setHexFeatures(cachedFeatures);
+
+                    const missingReqs = hexRequests.filter(r => r.time === null);
+                    const newCacheData = {};
+                    let completed = 0;
+                    const totalMissing = missingReqs.length;
+                    if (totalMissing > 0) setStatus(`Fetching ${totalMissing} from OSRM...`);
+                    for (const req of missingReqs) {
+                        await queue.add(async () => {
+                            const dt = await fetchOSRM(req.center, destArr);
+                            if (dt !== null) {
+                                newCacheData[req.key] = dt;
+                                setHexFeatures(prev => [...prev, {
+                                    type: 'Feature',
+                                    geometry: { type: 'Polygon', coordinates: [getHexPoly(req.center, hexSizeVal)] },
+                                    properties: { driving_time: dt }
+                                }]);
+                            }
+                            completed++;
+                            setProgress(totalMissing ? (completed / totalMissing) * 100 : 100);
+                            await new Promise(r => setTimeout(r, 20));
                         });
                     }
 
-                    completed++;
-                    pBar.style.width = (completed / missingCount) * 100 + "%";
-                    await new Promise(r => setTimeout(r, 20));
-                });
-            }
+                    if (Object.keys(newCacheData).length > 0) {
+                        setStatus('Saving to cache...');
+                        await saveCacheBatch(newCacheData);
+                    }
 
-            // 5. Save to Cache
-            if (Object.keys(newCacheData).length > 0) {
-                statusTxt.innerText = "Saving to Cache...";
-                await saveCacheBatch(newCacheData);
-            }
-
-            statusTxt.innerText = "Done!";
-            btn.disabled = false;
-            setTimeout(() => { document.getElementById('progress').classList.add('hidden'); }, 2000);
-        }
-
-        async function saveConfigPHP() {
-            const payload = {
-                name: document.getElementById('save_name').value || 'Unnamed',
-                center_lat: parseFloat(document.getElementById('center_lat').value),
-                center_lon: parseFloat(document.getElementById('center_lon').value),
-                dest_lat: parseFloat(document.getElementById('dest_lat').value),
-                dest_lon: parseFloat(document.getElementById('dest_lon').value),
-                radius: parseInt(document.getElementById('radius').value),
-                hex_size: parseFloat(document.getElementById('hex_size').value)
-            };
-            try {
-                const res = await fetch('save_map.php', { method: 'POST', body: JSON.stringify(payload) });
-                const json = await res.json();
-                if (json.status === 'success') alert("Saved!"); else alert("Error: " + json.message);
-            } catch (e) { alert("Network Error"); }
-        }
-
-        async function loadHistoryPHP() {
-            try {
-                const res = await fetch('get_history.php');
-                const data = await res.json();
-                const list = document.getElementById('history_list');
-                list.innerHTML = "";
-                data.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = "p-2 hover:bg-gray-100 cursor-pointer border rounded flex justify-between";
-                    li.innerHTML = `<span>${item.name}</span> <span class="text-xs text-gray-400">${item.created_at}</span>`;
-                    li.onclick = () => {
-                        document.getElementById('center_lat').value = item.center_lat;
-                        document.getElementById('center_lon').value = item.center_lon;
-                        document.getElementById('radius').value = item.radius;
-                        document.getElementById('radius_val').innerText = item.radius;
-                        if (item.hex_size) {
-                            document.getElementById('hex_size').value = item.hex_size;
-                            document.getElementById('hex_size_val').innerText = item.hex_size;
-                        }
-
-                        markers.center.setLatLng([item.center_lat, item.center_lon]);
-                    };
-                    list.appendChild(li);
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        map.on('click', function (e) {
-            if (pickMode) {
-                if (pickMode === 'center') {
-                    document.getElementById('center_lat').value = e.latlng.lat.toFixed(4);
-                    document.getElementById('center_lon').value = e.latlng.lng.toFixed(4);
-                    markers.center.setLatLng(e.latlng);
-                } else if (pickMode === 'dest') {
-                    document.getElementById('dest_lat').value = e.latlng.lat.toFixed(4);
-                    document.getElementById('dest_lon').value = e.latlng.lng.toFixed(4);
-                    markers.dest.setLatLng(e.latlng);
+                    setStatus('Done!');
+                } catch (err) {
+                    console.error(err);
+                    setStatus('Error generating grid');
+                } finally {
+                    setIsGenerating(false);
+                    setTimeout(() => setProgress(0), 1500);
                 }
-                pickMode = null;
-                map.getContainer().style.cursor = '';
-            }
-        });
+            };
 
-        function enablePick(mode) {
-            pickMode = mode;
-            map.getContainer().style.cursor = 'crosshair';
+            const saveConfig = async () => {
+                if (!saveName.trim()) { alert('Please enter a save name.'); return; }
+                if (!guardCooldown(saveCooldownRef, 4000)) { alert('Saving too quickly. Please wait.'); return; }
+                setSaving(true);
+                try {
+                    const payload = { name: saveName.trim(), center_lat: center.lat, center_lon: center.lon, dest_lat: dest.lat, dest_lon: dest.lon, radius, hex_size: hexSize };
+                    const res = await fetch('save_map.php', { method: 'POST', body: JSON.stringify(payload) });
+                    const json = await res.json();
+                    if (json.status === 'success') alert('Saved!'); else alert('Error: ' + json.message);
+                } catch (e) {
+                    alert('Network Error');
+                } finally { setSaving(false); }
+            };
+
+            const loadHistory = async () => {
+                if (!guardCooldown(historyCooldownRef, 4000)) { alert('Please wait before refreshing again.'); return; }
+                setLoadingHistory(true);
+                try {
+                    const res = await fetch('get_history.php');
+                    const data = await res.json();
+                    setHistory(data);
+                } catch (e) {
+                    console.error(e);
+                } finally { setLoadingHistory(false); }
+            };
+
+            const applyHistory = (item) => {
+                setCenter({ lat: parseFloat(item.center_lat), lon: parseFloat(item.center_lon) });
+                setDest({ lat: parseFloat(item.dest_lat), lon: parseFloat(item.dest_lon) });
+                setRadius(parseInt(item.radius));
+                if (item.hex_size) setHexSize(parseFloat(item.hex_size));
+            };
+
+            return (
+                <div className="flex h-screen">
+                    <div className="w-1/3 min-w-[380px] bg-white/95 backdrop-blur shadow-2xl z-20 flex flex-col p-6 overflow-y-auto space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs uppercase tracking-widest text-blue-500 font-semibold">HexMap Explorer</p>
+                                <h1 className="text-2xl font-extrabold text-gray-900">Route Heatmap</h1>
+                            </div>
+                            <span className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full border border-blue-200">React UI</span>
+                        </div>
+
+                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 shadow-sm space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs uppercase text-blue-600 font-semibold">Start</p>
+                                    <label className="block text-base font-semibold text-gray-800">Center point</label>
+                                </div>
+                                <button className={`text-xs text-blue-700 hover:text-blue-900 ${pickMode === 'center' ? 'font-bold' : ''}`} onClick={() => setPickMode('center')}>📍 Pick</button>
+                            </div>
+                            <div className="flex gap-2">
+                                <input type="number" value={center.lat} onChange={e => setCenter({ ...center, lat: parseFloat(e.target.value) })} step="0.0001" className="w-1/2 p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-300" />
+                                <input type="number" value={center.lon} onChange={e => setCenter({ ...center, lon: parseFloat(e.target.value) })} step="0.0001" className="w-1/2 p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-300" />
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-rose-50 rounded-xl border border-rose-100 shadow-sm space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs uppercase text-rose-600 font-semibold">Destination</p>
+                                    <label className="block text-base font-semibold text-gray-800">End point</label>
+                                </div>
+                                <button className={`text-xs text-rose-700 hover:text-rose-900 ${pickMode === 'dest' ? 'font-bold' : ''}`} onClick={() => setPickMode('dest')}>📍 Pick</button>
+                            </div>
+                            <div className="flex gap-2">
+                                <input type="number" value={dest.lat} onChange={e => setDest({ ...dest, lat: parseFloat(e.target.value) })} step="0.0001" className="w-1/2 p-2 border rounded-lg text-sm focus:ring-2 focus:ring-rose-300" />
+                                <input type="number" value={dest.lon} onChange={e => setDest({ ...dest, lon: parseFloat(e.target.value) })} step="0.0001" className="w-1/2 p-2 border rounded-lg text-sm focus:ring-2 focus:ring-rose-300" />
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Hexagon range (radius)</label>
+                                    <span className="text-xs text-gray-500">~{hexCount} hexes</span>
+                                </div>
+                                <input type="range" min="2" max="15" value={radius} onChange={e => setRadius(parseInt(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                                <div className="text-right text-xs text-gray-500">Radius: {radius}</div>
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Hexagon size (km)</label>
+                                    <span className="text-xs text-gray-500">{hexSize.toFixed(2)}</span>
+                                </div>
+                                <input type="range" min="0.1" max="1.2" step="0.05" value={hexSize} onChange={e => setHexSize(parseFloat(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                                <p className="text-xs text-gray-500 mt-1">Controls the distance between hexagon centers.</p>
+                            </div>
+                        </div>
+
+                        <CooldownButton onClick={handleGenerate} disabled={isGenerating} label={isGenerating ? 'Working...' : 'Generate Grid'} secondaryLabel={`${progress.toFixed(0)}%`} />
+                        <div className="text-xs text-gray-500 h-4 text-center">{status}</div>
+                        <div className={`w-full bg-gray-200 rounded-full h-2.5 mt-2 ${progress > 0 ? '' : 'hidden'}`}>
+                            <div className="bg-blue-600 h-2.5 rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+                        </div>
+
+                        <div className="flex gap-2 items-center p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                            <input type="text" value={saveName} onChange={e => setSaveName(e.target.value)} placeholder="Save Name (Required)" className="flex-grow p-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-300" />
+                            <button onClick={saveConfig} disabled={saving} className={`bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow ${saving ? 'opacity-60 cursor-not-allowed' : ''}`}>{saving ? 'Saving...' : 'Save'}</button>
+                        </div>
+
+                        <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-2">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-gray-800">PHP Database History</h3>
+                                <button className={`text-sm text-blue-600 hover:text-blue-800 ${loadingHistory ? 'opacity-60 cursor-not-allowed' : ''}`} onClick={loadHistory} disabled={loadingHistory}>⟳ Refresh</button>
+                            </div>
+                            <ul className="space-y-2 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                                {history.length === 0 && <li className="text-gray-400">Click refresh to load recent runs.</li>}
+                                {history.map((item) => (
+                                    <li key={item.id || `${item.name}-${item.created_at}`} onClick={() => applyHistory(item)} className="p-2 hover:bg-gray-100 cursor-pointer border rounded flex justify-between">
+                                        <span>{item.name}</span>
+                                        <span className="text-xs text-gray-400">{item.created_at}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <AStarGame />
+                    </div>
+
+                    <div className="flex-grow relative">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            );
         }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 
