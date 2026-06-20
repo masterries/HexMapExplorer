@@ -103,16 +103,12 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     // Guard StrictMode double-init: cleanup nulls apiRef + removes the map.
     if (!containerRef.current || apiRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      zoomControl: false,
-      preferCanvas: true, // canvas renderer scales to thousands of hexes/POIs
-    }).setView(INITIAL_VIEW, 11);
+    const map = L.map(containerRef.current, { zoomControl: false }).setView(
+      INITIAL_VIEW,
+      11,
+    );
     L.control.zoom({ position: 'topright' }).addTo(map);
     let tileLayer = L.tileLayer(LIGHT_TILES, { attribution: TILE_ATTRIB }).addTo(map);
-
-    // Separate canvas renderers: recoloring hexes must not redraw POI markers.
-    const hexRenderer = L.canvas({ padding: 0.5 }).addTo(map);
-    const poiRenderer = L.canvas({ padding: 0.5 }).addTo(map);
 
     const centerIcon = L.divIcon({
       className: 'custom-div-icon',
@@ -236,7 +232,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       return time != null ? String(Math.round(time)) : '';
     }
 
-    /** Recompute scores (cached) + re-apply fill colors. Labels: refreshLabels. */
+    /** Recompute scores (cached) + re-apply fill colors and labels. */
     function recolorAll(): void {
       const params = scoreParams();
       const commute = scoreCfg.mode === 'commute';
@@ -247,7 +243,16 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         const fill = commute
           ? getColor(h.time, renderConfig.colorMin, renderConfig.colorMax)
           : scoreColor(sc.score);
-        hexLayers[key]?.setStyle({ fillColor: fill });
+        const layer = hexLayers[key];
+        layer?.setStyle({ fillColor: fill });
+        if (layer?.getTooltip()) {
+          const label = commute
+            ? h.time != null
+              ? String(Math.round(h.time))
+              : ''
+            : String(Math.round(sc.score * 100));
+          layer.setTooltipContent(label);
+        }
       }
     }
 
@@ -260,17 +265,9 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       const visible = labelsVisible();
       const navigating = viewMode === 'navigate' && selectedKey != null;
       for (const key of Object.keys(hexLayers)) {
-        const layer = hexLayers[key];
-        const el = layer.getTooltip()?.getElement();
+        const el = hexLayers[key].getTooltip()?.getElement();
         if (!el) continue;
-        const show = visible && !(navigating && key !== selectedKey);
-        // Label content is computed lazily here (only when shown), so changing
-        // mode/weight/radius doesn't relabel every hex on each tick.
-        if (show) {
-          const h = hexData[key];
-          if (h) layer.setTooltipContent(labelFor(h.time, h.hLat, h.hLon));
-        }
-        el.style.opacity = show ? '1' : '0';
+        el.style.opacity = navigating && key !== selectedKey ? '0' : visible ? '1' : '0';
       }
     }
     map.on('zoomend', refreshLabels);
@@ -401,7 +398,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           },
         };
 
-        const layer = L.polygon(verts, { ...styles[state], renderer: hexRenderer });
+        const layer = L.polygon(verts, styles[state]);
         // Popup is built lazily so it reflects POIs loaded after the hex.
         layer.bindPopup(() => {
           const counts = countsFor(hLat, hLon);
@@ -468,7 +465,6 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
             weight: 1,
             fillColor: POI_COLORS[p.category] ?? '#6b7280',
             fillOpacity: 0.9,
-            renderer: poiRenderer,
           });
           marker.bindTooltip(
             `${POI_LABELS[p.category] ?? p.category}${p.name ? ': ' + p.name : ''}`,
