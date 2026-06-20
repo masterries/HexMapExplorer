@@ -1,0 +1,14 @@
+# Normalize line endings. The repo is developed on Windows, but these files are
+# consumed by Linux containers where CRLF would break them (nginx config, shell
+# scripts, Dockerfiles).
+* text=auto eol=lf
+
+*.conf   text eol=lf
+*.sh     text eol=lf
+Dockerfile text eol=lf
+*.sql    text eol=lf
+
+# Binary assets — never touch line endings
+*.png binary
+*.jpg binary
+*.ico binary
