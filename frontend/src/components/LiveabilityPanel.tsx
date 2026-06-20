@@ -1,19 +1,23 @@
-import type { ColorMode, RankedHex } from '../types';
+import type { ColorMode, RankedHex, ViewMode } from '../types';
 
 interface LiveabilityPanelProps {
   colorMode: ColorMode;
+  viewMode: ViewMode;
   commuteWeight: number; // 0..1
   ranking: RankedHex[];
   onColorModeChange: (m: ColorMode) => void;
+  onViewModeChange: (m: ViewMode) => void;
   onCommuteWeightChange: (w: number) => void; // 0..1
   onFocusHex: (q: number, r: number) => void;
 }
 
 export function LiveabilityPanel({
   colorMode,
+  viewMode,
   commuteWeight,
   ranking,
   onColorModeChange,
+  onViewModeChange,
   onCommuteWeightChange,
   onFocusHex,
 }: LiveabilityPanelProps) {
@@ -41,6 +45,32 @@ export function LiveabilityPanel({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* View mode toggle */}
+        <div>
+          <label className="text-xs font-bold text-gray-700 block mb-1">View</label>
+          <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg">
+            {(['all', 'navigate'] as ViewMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => onViewModeChange(m)}
+                className={`py-1.5 text-xs font-bold rounded-md transition-colors ${
+                  viewMode === m
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {m === 'all' ? 'Show all' : 'Navigate'}
+              </button>
+            ))}
+          </div>
+          {viewMode === 'navigate' && (
+            <p className="text-[10px] text-gray-400 leading-tight mt-1">
+              Click a hex to focus it — the others fade and only its nearby amenities
+              stay highlighted. Click the map background to reset.
+            </p>
+          )}
         </div>
 
         {/* Weight slider */}

@@ -116,6 +116,11 @@ export default function App() {
     refreshRanking();
   }, [config.colorMode, config.commuteWeight, config.poiCategories, apiRef, refreshRanking]);
 
+  // Sync the map view mode (show all / navigate).
+  useEffect(() => {
+    apiRef.current?.setViewMode(config.viewMode);
+  }, [config.viewMode, apiRef]);
+
   const handleFocusHex = useCallback(
     (q: number, r: number) => {
       apiRef.current?.focusHex(q, r);
@@ -380,9 +385,11 @@ export default function App() {
           {activeTab === 'score' && (
           <LiveabilityPanel
             colorMode={config.colorMode}
+            viewMode={config.viewMode}
             commuteWeight={config.commuteWeight}
             ranking={ranking}
             onColorModeChange={(m) => setField('colorMode', m)}
+            onViewModeChange={(m) => setField('viewMode', m)}
             onCommuteWeightChange={(w) => setField('commuteWeight', w)}
             onFocusHex={handleFocusHex}
           />

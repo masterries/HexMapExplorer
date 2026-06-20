@@ -17,9 +17,12 @@ export interface AppConfig {
   colorMode: ColorMode;
   /** Weight of commute vs amenities in the liveability score (0..1). */
   commuteWeight: number;
+  /** Map interaction: show all hexes, or focus one and fade the rest. */
+  viewMode: ViewMode;
 }
 
 export type ColorMode = 'commute' | 'liveability';
+export type ViewMode = 'all' | 'navigate';
 
 /** A hex ranked by liveability score. */
 export interface RankedHex {

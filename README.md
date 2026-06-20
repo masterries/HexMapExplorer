@@ -119,6 +119,9 @@ balance (e.g. *Commute 60% · Amenities 40%*).
   you change the weighting.
 - The **Best locations** list ranks the top hexes (each row shows the score, the
   commute, and the amenity coverage %); click one to fly there and open its popup.
+- **View: Show all / Navigate** — in *Navigate*, click a hex to focus it: the other
+  hexes fade out and only its nearby amenities stay highlighted, so you can study one
+  candidate location at a time. Click the map background (or *Show all*) to reset.
 - The hex popup shows **how the score is composed** — e.g. `90/100 = 60% commute
   (0.90) + 40% amenities (0.90)` — so it's clear why a hex scores what it does. With
   no POIs loaded the amenity part is `0.00` (and the popup says so).

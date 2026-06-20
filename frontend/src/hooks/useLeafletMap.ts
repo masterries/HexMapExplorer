@@ -10,13 +10,21 @@ import {
   type MercatorXY,
 } from '../services/hexGeo';
 import {
+  approxDistMeters,
   countNearbyPois,
   NEARBY_RADIUS_M,
   POI_COLORS,
   POI_LABELS,
 } from '../services/poi';
 import { liveabilityScore, scoreColor } from '../services/liveability';
-import type { ColorMode, HexState, PointKind, Poi, RankedHex } from '../types';
+import type {
+  ColorMode,
+  HexState,
+  PointKind,
+  Poi,
+  RankedHex,
+  ViewMode,
+} from '../types';
 
 export interface ScoreConfig {
   mode: ColorMode;
@@ -56,6 +64,7 @@ export interface MapApi {
   setScoreConfig(cfg: Partial<ScoreConfig>): void;
   getRanking(limit: number): RankedHex[];
   focusHex(q: number, r: number): void;
+  setViewMode(mode: ViewMode): void;
 }
 
 interface UseLeafletMapOptions {
@@ -125,16 +134,26 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     });
 
     let pickMode: PointKind | null = null;
+    let viewMode: ViewMode = 'all';
+    let selectedKey: string | null = null;
     map.on('click', (e: L.LeafletMouseEvent) => {
-      if (!pickMode) return;
-      const kind = pickMode;
-      const { lat, lng } = e.latlng;
-      if (kind === 'center') centerMarker.setLatLng(e.latlng);
-      else destMarker.setLatLng(e.latlng);
-      // Reset before onPick so a follow-up enablePick() (pick-both flow) sticks.
-      pickMode = null;
-      map.getContainer().style.cursor = '';
-      optionsRef.current.onPick(kind, lat, lng);
+      if (pickMode) {
+        const kind = pickMode;
+        const { lat, lng } = e.latlng;
+        if (kind === 'center') centerMarker.setLatLng(e.latlng);
+        else destMarker.setLatLng(e.latlng);
+        // Reset before onPick so a follow-up enablePick() (pick-both) sticks.
+        pickMode = null;
+        map.getContainer().style.cursor = '';
+        optionsRef.current.onPick(kind, lat, lng);
+        return;
+      }
+      // Background click in navigate mode clears the focused hex.
+      if (viewMode === 'navigate' && selectedKey != null) {
+        selectedKey = null;
+        map.closePopup();
+        emphasize();
+      }
     });
 
     // --- Hex rendering state (imperative, outside React) ---
@@ -213,14 +232,43 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
 
     function refreshLabels(): void {
       const visible = labelsVisible();
-      map
-        .getContainer()
-        .querySelectorAll<HTMLElement>('.hex-label')
-        .forEach((el) => {
-          el.style.opacity = visible ? '1' : '0';
-        });
+      const navigating = viewMode === 'navigate' && selectedKey != null;
+      for (const key of Object.keys(hexLayers)) {
+        const el = hexLayers[key].getTooltip()?.getElement();
+        if (!el) continue;
+        el.style.opacity = navigating && key !== selectedKey ? '0' : visible ? '1' : '0';
+      }
     }
     map.on('zoomend', refreshLabels);
+
+    /** Navigate-mode emphasis: fade non-selected hexes + far POIs. */
+    function emphasize(): void {
+      const navigating = viewMode === 'navigate' && selectedKey != null;
+      for (const key of Object.keys(hexData)) {
+        const layer = hexLayers[key];
+        if (!layer) continue;
+        if (!navigating) {
+          layer.setStyle({ color: '#ffffff', weight: 1, opacity: 1, fillOpacity: 0.55 });
+        } else if (key === selectedKey) {
+          layer.setStyle({ color: '#1e293b', weight: 3, opacity: 1, fillOpacity: 0.85 });
+        } else {
+          layer.setStyle({ color: '#94a3b8', weight: 0.5, opacity: 0.2, fillOpacity: 0.08 });
+        }
+      }
+      const sel = navigating && selectedKey ? hexData[selectedKey] : null;
+      poiLayerGroup.eachLayer((m) => {
+        const cm = m as L.CircleMarker;
+        if (typeof cm.getLatLng !== 'function' || typeof cm.setStyle !== 'function') return;
+        if (!sel) {
+          cm.setStyle({ opacity: 1, fillOpacity: 0.9 });
+        } else {
+          const ll = cm.getLatLng();
+          const near = approxDistMeters(sel.hLat, sel.hLon, ll.lat, ll.lng) <= NEARBY_RADIUS_M;
+          cm.setStyle({ opacity: near ? 1 : 0.1, fillOpacity: near ? 0.95 : 0.06 });
+        }
+      });
+      refreshLabels();
+    }
 
     const api: MapApi = {
       setMarker(kind, lat, lon) {
@@ -253,6 +301,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         hexLayerGroup.clearLayers();
         for (const k of Object.keys(hexLayers)) delete hexLayers[k];
         for (const k of Object.keys(hexData)) delete hexData[k];
+        selectedKey = null;
       },
       addHex(q, r, state, drivingTime) {
         const key = hexKey(q, r);
@@ -314,6 +363,13 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
             direction: 'center',
             className: `hex-label ${visibilityClass} transition-opacity duration-300 font-bold text-gray-700 pointer-events-none`,
           });
+          // Navigate mode: clicking focuses this hex (fades the rest).
+          layer.on('click', (e) => {
+            if (viewMode !== 'navigate') return;
+            L.DomEvent.stopPropagation(e);
+            selectedKey = key;
+            emphasize();
+          });
         }
       },
       refreshLabels,
@@ -334,6 +390,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           marker.addTo(poiLayerGroup);
         }
         recolorAll();
+        emphasize();
       },
       clearPois() {
         currentPois = [];
@@ -362,10 +419,23 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         return ranked.slice(0, limit);
       },
       focusHex(q, r) {
-        const h = hexData[hexKey(q, r)];
+        const key = hexKey(q, r);
+        const h = hexData[key];
         if (!h) return;
         map.setView([h.hLat, h.hLon], Math.max(map.getZoom(), 14));
-        hexLayers[hexKey(q, r)]?.openPopup();
+        if (viewMode === 'navigate') {
+          selectedKey = key;
+          emphasize();
+        }
+        hexLayers[key]?.openPopup();
+      },
+      setViewMode(mode) {
+        viewMode = mode;
+        if (mode === 'all') {
+          selectedKey = null;
+          map.closePopup();
+        }
+        emphasize();
       },
     };
 

@@ -15,6 +15,7 @@ const DEFAULT_CONFIG: AppConfig = {
   poiCategories: ['supermarket', 'bakery', 'school', 'pharmacy', 'doctor'],
   colorMode: 'commute',
   commuteWeight: 0.6,
+  viewMode: 'all',
 };
 
 /**
