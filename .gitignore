@@ -10,6 +10,9 @@ build/
 .env.local
 *.local
 
+# Server-specific compose (Traefik, domains, secrets) — not committed
+docker-compose.server.yml
+
 # Logs
 *.log
 npm-debug.log*
