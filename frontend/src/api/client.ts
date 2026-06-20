@@ -10,15 +10,30 @@ async function postJson<T>(
   url: string,
   body: unknown,
   signal?: AbortSignal,
+  extraHeaders?: Record<string, string>,
 ): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
     body: JSON.stringify(body),
     signal,
   });
+  if (res.status === 401) throw new Error('UNAUTHORIZED');
   if (!res.ok) throw new Error(`Request to ${url} failed: ${res.status}`);
   return res.json() as Promise<T>;
+}
+
+// --- Admin auth (simple shared password sent as x-admin-token) ---
+
+const ADMIN_TOKEN_KEY = 'hexmap.adminToken';
+export function getAdminToken(): string {
+  return localStorage.getItem(ADMIN_TOKEN_KEY) ?? '';
+}
+export function setAdminToken(token: string): void {
+  localStorage.setItem(ADMIN_TOKEN_KEY, token);
+}
+function adminHeaders(): Record<string, string> {
+  return { 'x-admin-token': getAdminToken() };
 }
 
 export function getCache(
@@ -59,15 +74,16 @@ export function getPois(
 // --- Admin: cache management ---
 
 export async function getCacheStats(): Promise<CacheStats> {
-  const res = await fetch('/api/admin/stats');
+  const res = await fetch('/api/admin/stats', { headers: adminHeaders() });
+  if (res.status === 401) throw new Error('UNAUTHORIZED');
   if (!res.ok) throw new Error(`Request to /api/admin/stats failed: ${res.status}`);
   return res.json() as Promise<CacheStats>;
 }
 
 export function clearDrivingCache(): Promise<{ deleted: number }> {
-  return postJson('/api/admin/driving/clear', {});
+  return postJson('/api/admin/driving/clear', {}, undefined, adminHeaders());
 }
 
 export function deletePoiCache(key?: string): Promise<{ deleted: number }> {
-  return postJson('/api/admin/poi/delete', key ? { key } : {});
+  return postJson('/api/admin/poi/delete', key ? { key } : {}, undefined, adminHeaders());
 }

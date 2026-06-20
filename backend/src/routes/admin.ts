@@ -2,15 +2,23 @@ import type { FastifyInstance } from 'fastify';
 import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { drivingTimeCache, poiCache } from '../db/schema.js';
+import { env } from '../env.js';
 
 /**
  * Cache administration: inspect and clear the driving-time and POI caches.
  *
- * NOTE: these endpoints are unauthenticated, consistent with the rest of this
- * self-hosted app. Put the deployment behind reverse-proxy auth (or a VPN) if
- * it is exposed publicly.
+ * Gated by a simple shared password (the `ADMIN_TOKEN` env var, default
+ * "admin") sent as the `x-admin-token` header. For a public deployment, set a
+ * strong ADMIN_TOKEN and/or put it behind reverse-proxy auth.
  */
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
+  // Applies only to this encapsulated plugin (the /admin routes).
+  app.addHook('onRequest', async (request, reply) => {
+    if (request.headers['x-admin-token'] !== env.ADMIN_TOKEN) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+  });
+
   // Cache overview.
   app.get('/admin/stats', async () => {
     const [{ count: drivingCount }] = await db

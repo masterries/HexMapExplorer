@@ -77,9 +77,9 @@ All endpoints are served under `/api`. Responses use camelCase JSON.
 | `POST` | `/api/admin/poi/delete` | `{ key? }` — delete one POI cache entry, or all → `{ deleted }` |
 | `GET`  | `/api/health`    | `{ status: "ok" }` |
 
-> The `/api/admin/*` endpoints are **unauthenticated** (consistent with this
-> self-hosted app). Put the deployment behind reverse-proxy auth or a VPN if you
-> expose it publicly.
+> The `/api/admin/*` endpoints are gated by a shared password sent as the
+> `x-admin-token` header, checked against the `ADMIN_TOKEN` env var (**default
+> `admin`** — change it for any non-local deployment).
 
 ## Database schema
 
@@ -102,9 +102,10 @@ doctors, hospitals, restaurants, cafés, banks, fuel, parks, gyms, transit — a
 category-colored dots, and each **hex popup** lists the POIs within 1 km — so you
 can see which low-commute hexes also have amenities nearby.
 
-**Cache admin** (gear icon, top of the sidebar): inspect the driving-time and POI
-caches, **force-reload** the current area (bypassing the cache), and **delete**
-individual POI cache entries or clear a cache entirely.
+**Cache admin** (gear icon, top of the sidebar, password-protected — default
+`admin`): inspect the driving-time and POI caches, **force-reload** the current area
+(bypassing the cache), and **delete** individual POI cache entries or clear a cache
+entirely.
 
 ## Liveability score
 

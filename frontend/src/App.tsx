@@ -109,13 +109,18 @@ export default function App() {
   // Push the score config to the map (recolors hexes) and re-rank whenever the
   // mode, weighting, or selected categories change.
   useEffect(() => {
-    apiRef.current?.setScoreConfig({
-      mode: config.colorMode,
-      commuteWeight: config.commuteWeight,
-      categories: config.poiCategories,
-      nearbyRadiusM: config.nearbyRadiusKm * 1000,
-    });
-    refreshRanking();
+    // Debounced: dragging the weight/radius sliders shouldn't re-score every
+    // hex on each tick (slow for large grids) — only after the value settles.
+    const id = window.setTimeout(() => {
+      apiRef.current?.setScoreConfig({
+        mode: config.colorMode,
+        commuteWeight: config.commuteWeight,
+        categories: config.poiCategories,
+        nearbyRadiusM: config.nearbyRadiusKm * 1000,
+      });
+      refreshRanking();
+    }, 120);
+    return () => window.clearTimeout(id);
   }, [
     config.colorMode,
     config.commuteWeight,

@@ -63,6 +63,7 @@ export function useHeatmap(
         colorMin: cfg.colorMin,
         colorMax: cfg.colorMax,
         showLabels: cfg.showLabels,
+        radius: cfg.radius,
       });
       api.clearHexes();
 

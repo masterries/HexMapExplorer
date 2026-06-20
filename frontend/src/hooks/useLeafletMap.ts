@@ -3,6 +3,7 @@ import L from 'leaflet';
 import {
   axialToMerc,
   getColor,
+  hexCount,
   hexKey,
   hexPolygonLatLng,
   toMercator,
@@ -11,12 +12,16 @@ import {
 } from '../services/hexGeo';
 import {
   approxDistMeters,
-  countNearbyPois,
+  buildPoiIndex,
   NEARBY_RADIUS_M,
   POI_COLORS,
   POI_LABELS,
+  type PoiIndex,
 } from '../services/poi';
-import { liveabilityScore, scoreColor } from '../services/liveability';
+import { liveabilityScore, scoreColor, type HexScore } from '../services/liveability';
+
+/** Above this hex count, permanent labels are skipped (too dense + slow). */
+const LABEL_CAP = 800;
 import type {
   ColorMode,
   HexState,
@@ -48,6 +53,7 @@ export interface RenderConfig {
   colorMin: number;
   colorMax: number;
   showLabels: boolean;
+  radius: number;
 }
 
 /** Imperative handle over the Leaflet map. Stable for the map's lifetime. */
@@ -97,12 +103,16 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     // Guard StrictMode double-init: cleanup nulls apiRef + removes the map.
     if (!containerRef.current || apiRef.current) return;
 
-    const map = L.map(containerRef.current, { zoomControl: false }).setView(
-      INITIAL_VIEW,
-      11,
-    );
+    const map = L.map(containerRef.current, {
+      zoomControl: false,
+      preferCanvas: true, // canvas renderer scales to thousands of hexes/POIs
+    }).setView(INITIAL_VIEW, 11);
     L.control.zoom({ position: 'topright' }).addTo(map);
     let tileLayer = L.tileLayer(LIGHT_TILES, { attribution: TILE_ATTRIB }).addTo(map);
+
+    // Separate canvas renderers: recoloring hexes must not redraw POI markers.
+    const hexRenderer = L.canvas({ padding: 0.5 }).addTo(map);
+    const poiRenderer = L.canvas({ padding: 0.5 }).addTo(map);
 
     const centerIcon = L.divIcon({
       className: 'custom-div-icon',
@@ -139,6 +149,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     let viewMode: ViewMode = 'all';
     let selectedKey: string | null = null;
     let selectionCircle: L.Circle | null = null;
+    let emphasisApplied = false; // are hexes/POIs currently faded for navigate?
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (pickMode) {
         const kind = pickMode;
@@ -166,12 +177,15 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     // POI markers live in their own layer, independent of the hex grid.
     const poiLayerGroup = L.layerGroup().addTo(map);
     let currentPois: Poi[] = [];
+    let poiIndex: PoiIndex | null = null;
 
     // Per-hex data kept for re-coloring and ranking by liveability score.
     const hexData: Record<
       string,
       { q: number; r: number; hLat: number; hLon: number; time: number | null }
     > = {};
+    // Cached per-hex score from the last recolor, reused by getRanking/labels.
+    const hexScore: Record<string, HexScore> = {};
     let scoreCfg: ScoreConfig = {
       mode: 'commute',
       commuteWeight: 0.6,
@@ -187,6 +201,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       colorMin: 5,
       colorMax: 70,
       showLabels: true,
+      radius: 6,
     };
     let centerMerc: MercatorXY = toMercator([renderConfig.centerLon, renderConfig.centerLat]);
     let hexSizeMeters = renderConfig.hexSize * 1000;
@@ -197,8 +212,10 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       categoryWeights: scoreCfg.categoryWeights,
       colorMin: renderConfig.colorMin,
       colorMax: renderConfig.colorMax,
-      radiusM: scoreCfg.nearbyRadiusM,
     });
+
+    const countsFor = (hLat: number, hLon: number): Record<string, number> =>
+      poiIndex ? poiIndex.query(hLat, hLon, scoreCfg.nearbyRadiusM) : {};
 
     /** Fill color for a hex, depending on the current color mode. */
     function fillFor(time: number | null, hLat: number, hLon: number): string {
@@ -206,27 +223,31 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         return getColor(time, renderConfig.colorMin, renderConfig.colorMax);
       }
       return scoreColor(
-        liveabilityScore(time, currentPois, hLat, hLon, scoreParams()).score,
+        liveabilityScore(time, countsFor(hLat, hLon), scoreParams()).score,
       );
     }
 
     /** On-hex number: commute minutes, or the liveability score (0-100). */
     function labelFor(time: number | null, hLat: number, hLon: number): string {
       if (scoreCfg.mode === 'liveability') {
-        const s = liveabilityScore(time, currentPois, hLat, hLon, scoreParams()).score;
+        const s = liveabilityScore(time, countsFor(hLat, hLon), scoreParams()).score;
         return String(Math.round(s * 100));
       }
       return time != null ? String(Math.round(time)) : '';
     }
 
-    /** Re-apply fill colors and labels to all drawn hexes (mode/POI change). */
+    /** Recompute scores (cached) + re-apply fill colors. Labels: refreshLabels. */
     function recolorAll(): void {
+      const params = scoreParams();
+      const commute = scoreCfg.mode === 'commute';
       for (const key of Object.keys(hexData)) {
         const h = hexData[key];
-        const layer = hexLayers[key];
-        if (!layer) continue;
-        layer.setStyle({ fillColor: fillFor(h.time, h.hLat, h.hLon) });
-        if (layer.getTooltip()) layer.setTooltipContent(labelFor(h.time, h.hLat, h.hLon));
+        const sc = liveabilityScore(h.time, countsFor(h.hLat, h.hLon), params);
+        hexScore[key] = sc;
+        const fill = commute
+          ? getColor(h.time, renderConfig.colorMin, renderConfig.colorMax)
+          : scoreColor(sc.score);
+        hexLayers[key]?.setStyle({ fillColor: fill });
       }
     }
 
@@ -239,9 +260,17 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       const visible = labelsVisible();
       const navigating = viewMode === 'navigate' && selectedKey != null;
       for (const key of Object.keys(hexLayers)) {
-        const el = hexLayers[key].getTooltip()?.getElement();
+        const layer = hexLayers[key];
+        const el = layer.getTooltip()?.getElement();
         if (!el) continue;
-        el.style.opacity = navigating && key !== selectedKey ? '0' : visible ? '1' : '0';
+        const show = visible && !(navigating && key !== selectedKey);
+        // Label content is computed lazily here (only when shown), so changing
+        // mode/weight/radius doesn't relabel every hex on each tick.
+        if (show) {
+          const h = hexData[key];
+          if (h) layer.setTooltipContent(labelFor(h.time, h.hLat, h.hLon));
+        }
+        el.style.opacity = show ? '1' : '0';
       }
     }
     map.on('zoomend', refreshLabels);
@@ -249,6 +278,16 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     /** Navigate-mode emphasis: fade non-selected hexes + far POIs. */
     function emphasize(): void {
       const navigating = viewMode === 'navigate' && selectedKey != null;
+      // Fast path: nothing is faded and nothing needs fading. Avoids thousands
+      // of redundant setStyle calls on every score/radius change (large grids).
+      if (!navigating && !emphasisApplied) {
+        if (selectionCircle) {
+          map.removeLayer(selectionCircle);
+          selectionCircle = null;
+        }
+        refreshLabels();
+        return;
+      }
       for (const key of Object.keys(hexData)) {
         const layer = hexLayers[key];
         if (!layer) continue;
@@ -290,6 +329,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         }).addTo(map);
       }
       refreshLabels();
+      emphasisApplied = navigating;
     }
 
     /** Re-render the currently open hex popup (after a scoring/radius change). */
@@ -334,6 +374,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         hexLayerGroup.clearLayers();
         for (const k of Object.keys(hexLayers)) delete hexLayers[k];
         for (const k of Object.keys(hexData)) delete hexData[k];
+        for (const k of Object.keys(hexScore)) delete hexScore[k];
         selectedKey = null;
         if (selectionCircle) {
           map.removeLayer(selectionCircle);
@@ -360,10 +401,11 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           },
         };
 
-        const layer = L.polygon(verts, styles[state]);
+        const layer = L.polygon(verts, { ...styles[state], renderer: hexRenderer });
         // Popup is built lazily so it reflects POIs loaded after the hex.
         layer.bindPopup(() => {
-          const sc = liveabilityScore(drivingTime, currentPois, hLat, hLon, scoreParams());
+          const counts = countsFor(hLat, hLon);
+          const sc = liveabilityScore(drivingTime, counts, scoreParams());
           const cw = scoreCfg.commuteWeight;
           let html =
             `<div class="text-sm">` +
@@ -379,7 +421,6 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           }
           if (currentPois.length) {
             const radiusM = scoreCfg.nearbyRadiusM;
-            const counts = countNearbyPois(currentPois, hLat, hLon, radiusM);
             const lines = Object.entries(counts)
               .sort((a, b) => b[1] - a[1])
               .map(([cat, n]) => `${POI_LABELS[cat] ?? cat}: ${n}`);
@@ -395,12 +436,17 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         if (state === 'done') hexData[key] = { q, r, hLat, hLon, time: drivingTime };
 
         if (state === 'done') {
-          const visibilityClass = labelsVisible() ? 'opacity-100' : 'opacity-0';
-          layer.bindTooltip(labelFor(drivingTime, hLat, hLon), {
-            permanent: true,
-            direction: 'center',
-            className: `hex-label ${visibilityClass} transition-opacity duration-300 font-bold text-gray-700 pointer-events-none`,
-          });
+          // Skip permanent labels for very large grids (too dense + slow).
+          const labelsAllowed =
+            renderConfig.showLabels && hexCount(renderConfig.radius) <= LABEL_CAP;
+          if (labelsAllowed) {
+            const visibilityClass = labelsVisible() ? 'opacity-100' : 'opacity-0';
+            layer.bindTooltip(labelFor(drivingTime, hLat, hLon), {
+              permanent: true,
+              direction: 'center',
+              className: `hex-label ${visibilityClass} transition-opacity duration-300 font-bold text-gray-700 pointer-events-none`,
+            });
+          }
           // Navigate mode: clicking focuses this hex (fades the rest).
           layer.on('click', (e) => {
             if (viewMode !== 'navigate') return;
@@ -413,6 +459,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       refreshLabels,
       setPois(pois) {
         currentPois = pois;
+        poiIndex = buildPoiIndex(pois);
         poiLayerGroup.clearLayers();
         for (const p of pois) {
           const marker = L.circleMarker([p.lat, p.lon], {
@@ -421,6 +468,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
             weight: 1,
             fillColor: POI_COLORS[p.category] ?? '#6b7280',
             fillOpacity: 0.9,
+            renderer: poiRenderer,
           });
           marker.bindTooltip(
             `${POI_LABELS[p.category] ?? p.category}${p.name ? ': ' + p.name : ''}`,
@@ -432,8 +480,10 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       },
       clearPois() {
         currentPois = [];
+        poiIndex = null;
         poiLayerGroup.clearLayers();
         recolorAll();
+        emphasize();
       },
       setScoreConfig(cfg) {
         scoreCfg = { ...scoreCfg, ...cfg };
@@ -442,8 +492,11 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         refreshOpenPopup();
       },
       getRanking(limit) {
+        const params = scoreParams();
         const ranked: RankedHex[] = Object.values(hexData).map((h) => {
-          const s = liveabilityScore(h.time, currentPois, h.hLat, h.hLon, scoreParams());
+          const s =
+            hexScore[hexKey(h.q, h.r)] ??
+            liveabilityScore(h.time, countsFor(h.hLat, h.hLon), params);
           return {
             q: h.q,
             r: h.r,

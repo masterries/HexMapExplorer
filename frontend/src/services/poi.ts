@@ -84,3 +84,50 @@ export function countNearbyPois(
   }
   return counts;
 }
+
+const CELL_DEG = 0.01; // ~1.1 km grid cells
+const M_PER_DEG = 111320;
+
+/**
+ * Spatial hash index over POIs so per-hex "nearby counts" are O(POIs in a few
+ * cells) instead of O(all POIs). Essential for large grids (1000+ hexes), where
+ * the score is recomputed for every hex on each weighting/radius change.
+ */
+export interface PoiIndex {
+  query(lat: number, lon: number, radiusM: number): Record<string, number>;
+}
+
+export function buildPoiIndex(pois: Poi[]): PoiIndex {
+  const grid = new Map<string, Poi[]>();
+  for (const p of pois) {
+    const key = Math.floor(p.lat / CELL_DEG) + ',' + Math.floor(p.lon / CELL_DEG);
+    let cell = grid.get(key);
+    if (!cell) {
+      cell = [];
+      grid.set(key, cell);
+    }
+    cell.push(p);
+  }
+  return {
+    query(lat, lon, radiusM) {
+      const counts: Record<string, number> = {};
+      const mPerCellLon = CELL_DEG * M_PER_DEG * Math.max(0.1, Math.cos((lat * Math.PI) / 180));
+      const rangeLat = Math.ceil(radiusM / (CELL_DEG * M_PER_DEG));
+      const rangeLon = Math.ceil(radiusM / mPerCellLon);
+      const clat = Math.floor(lat / CELL_DEG);
+      const clon = Math.floor(lon / CELL_DEG);
+      for (let dy = -rangeLat; dy <= rangeLat; dy++) {
+        for (let dx = -rangeLon; dx <= rangeLon; dx++) {
+          const cell = grid.get(clat + dy + ',' + (clon + dx));
+          if (!cell) continue;
+          for (const p of cell) {
+            if (approxDistMeters(lat, lon, p.lat, p.lon) <= radiusM) {
+              counts[p.category] = (counts[p.category] ?? 0) + 1;
+            }
+          }
+        }
+      }
+      return counts;
+    },
+  };
+}

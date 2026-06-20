@@ -3,6 +3,7 @@ import {
   clearDrivingCache,
   deletePoiCache,
   getCacheStats,
+  setAdminToken,
 } from '../api/client';
 import type { CacheStats } from '../types';
 
@@ -28,18 +29,28 @@ export function AdminPanel({ open, onClose, onForceReload }: AdminPanelProps) {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [needAuth, setNeedAuth] = useState(false);
+  const [password, setPassword] = useState('');
 
   const loadStats = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       setStats(await getCacheStats());
-    } catch {
-      setError('Failed to load cache stats');
+      setNeedAuth(false);
+    } catch (e) {
+      if ((e as Error).message === 'UNAUTHORIZED') setNeedAuth(true);
+      else setError('Failed to load cache stats');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const unlock = useCallback(() => {
+    setAdminToken(password.trim());
+    setPassword('');
+    void loadStats();
+  }, [password, loadStats]);
 
   useEffect(() => {
     if (open) void loadStats();
@@ -98,6 +109,36 @@ export function AdminPanel({ open, onClose, onForceReload }: AdminPanelProps) {
 
         {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
+        {needAuth ? (
+          <div className="py-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              Enter the admin password to manage caches.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={password}
+                autoFocus
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') unlock();
+                }}
+                placeholder="Admin password"
+                className="flex-grow p-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <button
+                onClick={unlock}
+                className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Unlock
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2">
+              Default: <code>admin</code> (set <code>ADMIN_TOKEN</code> to change).
+            </p>
+          </div>
+        ) : (
+          <>
         {/* Driving-time cache */}
         <section className="mb-5">
           <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Driving-time cache</h3>
@@ -181,6 +222,8 @@ export function AdminPanel({ open, onClose, onForceReload }: AdminPanelProps) {
             </ul>
           )}
         </section>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,3 @@
-import { countNearbyPois, NEARBY_RADIUS_M } from './poi';
-import type { Poi } from '../types';
-
 /** Nearby count at which a category's coverage sub-score saturates to 1. */
 const POI_SATURATION = 2;
 
@@ -14,7 +11,6 @@ export interface ScoreParams {
   /** Commute-time range used for normalization (same as the color range). */
   colorMin: number;
   colorMax: number;
-  radiusM?: number;
 }
 
 export interface HexScore {
@@ -41,17 +37,13 @@ export function commuteScore(
   return clamp01(1 - (timeMin - colorMin) / span);
 }
 
-/** Weighted average of per-category coverage (each saturating with count). */
+/** Weighted average of per-category coverage from precomputed nearby counts. */
 export function poiScore(
-  pois: Poi[],
-  lat: number,
-  lon: number,
+  counts: Record<string, number>,
   categories: string[],
   weights: Record<string, number> = {},
-  radiusM: number = NEARBY_RADIUS_M,
 ): number {
   if (categories.length === 0) return 0;
-  const counts = countNearbyPois(pois, lat, lon, radiusM);
   let wsum = 0;
   let acc = 0;
   for (const c of categories) {
@@ -66,13 +58,11 @@ export function poiScore(
 
 export function liveabilityScore(
   timeMin: number | null,
-  pois: Poi[],
-  lat: number,
-  lon: number,
+  nearbyCounts: Record<string, number>,
   p: ScoreParams,
 ): HexScore {
   const cs = commuteScore(timeMin, p.colorMin, p.colorMax);
-  const ps = poiScore(pois, lat, lon, p.categories, p.categoryWeights, p.radiusM);
+  const ps = poiScore(nearbyCounts, p.categories, p.categoryWeights);
   const wc = clamp01(p.commuteWeight);
   return { score: wc * cs + (1 - wc) * ps, commuteScore: cs, poiScore: ps };
 }

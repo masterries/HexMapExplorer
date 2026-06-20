@@ -11,6 +11,8 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().url(),
   CORS_ORIGIN: z.string().default('*'),
+  /** Password for the /api/admin/* cache-management endpoints. */
+  ADMIN_TOKEN: z.string().default('admin'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
