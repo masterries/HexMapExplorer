@@ -32,6 +32,7 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [poiLoading, setPoiLoading] = useState(false);
   const [poiStatus, setPoiStatus] = useState('');
+  const [generating, setGenerating] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [ranking, setRanking] = useState<RankedHex[]>([]);
   const [activeTab, setActiveTab] = useState('trip');
@@ -215,11 +216,16 @@ export default function App() {
       api?.setMarker('dest', item.destLat, item.destLon);
       api?.flyTo(item.centerLat, item.centerLon, 11);
       setMobileOpen(false);
-      await start(next);
-      if (configRef.current.poiCategories.length > 0) {
-        await handlePoiLoad();
+      setGenerating(true);
+      try {
+        await start(next);
+        if (configRef.current.poiCategories.length > 0) {
+          await handlePoiLoad();
+        }
+        refreshRanking();
+      } finally {
+        setGenerating(false);
       }
-      refreshRanking();
     },
     [patch, apiRef, start, handlePoiLoad, configRef, refreshRanking],
   );
@@ -241,13 +247,18 @@ export default function App() {
   );
 
   const handleGenerate = useCallback(async () => {
-    await start();
-    // Auto-load POIs for the whole grid so the liveability score is complete
-    // for every hex without a separate manual step.
-    if (configRef.current.poiCategories.length > 0) {
-      await handlePoiLoad();
+    setGenerating(true);
+    try {
+      await start();
+      // Auto-load POIs for the whole grid so the liveability score is complete
+      // for every hex without a separate manual step.
+      if (configRef.current.poiCategories.length > 0) {
+        await handlePoiLoad();
+      }
+      refreshRanking();
+    } finally {
+      setGenerating(false);
     }
-    refreshRanking();
   }, [start, handlePoiLoad, configRef, refreshRanking]);
 
   const handleToggleCategory = useCallback(
@@ -367,9 +378,12 @@ export default function App() {
 
           <GenerateControls
             isRunning={isRunning}
+            generating={generating}
             statusText={statusText}
             progress={progress}
             progressVisible={progressVisible}
+            poiLoading={poiLoading}
+            poiStatus={poiStatus}
             colorMin={config.colorMin}
             colorMax={config.colorMax}
             colorMode={config.colorMode}
