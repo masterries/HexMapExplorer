@@ -110,8 +110,9 @@ individual POI cache entries or clear a cache entirely.
 
 The **Liveability** panel combines the two signals into a single per-hex score
 (0–100): a weighted blend of **commute time** (shorter = better) and **amenity
-coverage** (more nearby categories within 1 km = better). A slider sets the
-balance (e.g. *Commute 60% · Amenities 40%*).
+coverage** (more nearby categories = better). A slider sets the balance (e.g.
+*Commute 60% · Amenities 40%*), and an **Amenity radius** slider sets how far
+amenities count (default 1 km).
 
 - Switch **Color hexes by** from *Commute* to *Liveability* to recolor the grid by
   score (green = best, red = worst) **and relabel each hex** — the on-hex number
@@ -120,8 +121,9 @@ balance (e.g. *Commute 60% · Amenities 40%*).
 - The **Best locations** list ranks the top hexes (each row shows the score, the
   commute, and the amenity coverage %); click one to fly there and open its popup.
 - **View: Show all / Navigate** — in *Navigate*, click a hex to focus it: the other
-  hexes fade out and only its nearby amenities stay highlighted, so you can study one
-  candidate location at a time. Click the map background (or *Show all*) to reset.
+  hexes fade out, a dashed circle marks the amenity radius, and POIs inside it stay
+  highlighted (those outside dim) so you can study one candidate at a time. Click the
+  map background (or *Show all*) to reset.
 - The hex popup shows **how the score is composed** — e.g. `90/100 = 60% commute
   (0.90) + 40% amenities (0.90)` — so it's clear why a hex scores what it does. With
   no POIs loaded the amenity part is `0.00` (and the popup says so).

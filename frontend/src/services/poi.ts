@@ -1,8 +1,11 @@
 import { toMercator, toWgs84 } from './hexGeo';
 import type { BBox, Poi } from '../types';
 
-/** Radius (meters) used for "POIs near this hex" counts in hex popups. */
+/** Default radius (meters) for "POIs near this hex" counts. */
 export const NEARBY_RADIUS_M = 1000;
+/** Max amenity radius the UI allows; POIs are fetched out to this distance so
+ *  changing the radius never needs a re-fetch. */
+export const MAX_NEARBY_RADIUS_M = 3000;
 
 export interface PoiCategory {
   key: string;
@@ -46,7 +49,8 @@ export function gridBbox(
   hexSizeKm: number,
 ): BBox {
   const hexSizeM = hexSizeKm * 1000;
-  const reach = radius * hexSizeM * Math.sqrt(3) + hexSizeM + NEARBY_RADIUS_M;
+  // Pad by the MAX amenity radius so any radius the slider allows is covered.
+  const reach = radius * hexSizeM * Math.sqrt(3) + hexSizeM + MAX_NEARBY_RADIUS_M;
   const c = toMercator([centerLon, centerLat]);
   const [westLon, southLat] = toWgs84([c[0] - reach, c[1] - reach]);
   const [eastLon, northLat] = toWgs84([c[0] + reach, c[1] + reach]);

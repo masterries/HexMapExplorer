@@ -4,10 +4,12 @@ interface LiveabilityPanelProps {
   colorMode: ColorMode;
   viewMode: ViewMode;
   commuteWeight: number; // 0..1
+  nearbyRadiusKm: number;
   ranking: RankedHex[];
   onColorModeChange: (m: ColorMode) => void;
   onViewModeChange: (m: ViewMode) => void;
   onCommuteWeightChange: (w: number) => void; // 0..1
+  onNearbyRadiusChange: (km: number) => void;
   onFocusHex: (q: number, r: number) => void;
 }
 
@@ -15,10 +17,12 @@ export function LiveabilityPanel({
   colorMode,
   viewMode,
   commuteWeight,
+  nearbyRadiusKm,
   ranking,
   onColorModeChange,
   onViewModeChange,
   onCommuteWeightChange,
+  onNearbyRadiusChange,
   onFocusHex,
 }: LiveabilityPanelProps) {
   const commutePct = Math.round(commuteWeight * 100);
@@ -92,6 +96,29 @@ export function LiveabilityPanel({
           <p className="text-[10px] text-gray-400 leading-tight mt-1">
             Score blends commute time with nearby-amenity coverage. Amenities load
             automatically when you generate (or load/refresh them in the <b>POIs</b> tab).
+          </p>
+        </div>
+
+        {/* Amenity radius */}
+        <div>
+          <div className="flex justify-between items-baseline mb-1">
+            <label className="text-xs font-bold text-gray-700">Amenity radius</label>
+            <span className="text-[11px] font-mono text-gray-500">
+              {nearbyRadiusKm.toFixed(1)} km
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0.3}
+            max={3}
+            step={0.1}
+            value={nearbyRadiusKm}
+            onChange={(e) => onNearbyRadiusChange(parseFloat(e.target.value))}
+            className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+          />
+          <p className="text-[10px] text-gray-400 leading-tight mt-1">
+            How far amenities count toward a hex's score. In <b>Navigate</b>, a dashed
+            circle shows this catchment.
           </p>
         </div>
 

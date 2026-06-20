@@ -31,6 +31,8 @@ export interface ScoreConfig {
   commuteWeight: number;
   categories: string[];
   categoryWeights: Record<string, number>;
+  /** Radius (meters) within which amenities count. */
+  nearbyRadiusM: number;
 }
 
 const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
@@ -136,6 +138,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     let pickMode: PointKind | null = null;
     let viewMode: ViewMode = 'all';
     let selectedKey: string | null = null;
+    let selectionCircle: L.Circle | null = null;
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (pickMode) {
         const kind = pickMode;
@@ -174,6 +177,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       commuteWeight: 0.6,
       categories: [],
       categoryWeights: {},
+      nearbyRadiusM: NEARBY_RADIUS_M,
     };
 
     let renderConfig: RenderConfig = {
@@ -193,6 +197,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       categoryWeights: scoreCfg.categoryWeights,
       colorMin: renderConfig.colorMin,
       colorMax: renderConfig.colorMax,
+      radiusM: scoreCfg.nearbyRadiusM,
     });
 
     /** Fill color for a hex, depending on the current color mode. */
@@ -256,6 +261,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         }
       }
       const sel = navigating && selectedKey ? hexData[selectedKey] : null;
+      const radiusM = scoreCfg.nearbyRadiusM;
       poiLayerGroup.eachLayer((m) => {
         const cm = m as L.CircleMarker;
         if (typeof cm.getLatLng !== 'function' || typeof cm.setStyle !== 'function') return;
@@ -263,11 +269,38 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           cm.setStyle({ opacity: 1, fillOpacity: 0.9 });
         } else {
           const ll = cm.getLatLng();
-          const near = approxDistMeters(sel.hLat, sel.hLon, ll.lat, ll.lng) <= NEARBY_RADIUS_M;
-          cm.setStyle({ opacity: near ? 1 : 0.1, fillOpacity: near ? 0.95 : 0.06 });
+          const near = approxDistMeters(sel.hLat, sel.hLon, ll.lat, ll.lng) <= radiusM;
+          // Far POIs are dimmed but kept faintly visible (not fully hidden).
+          cm.setStyle({ opacity: near ? 1 : 0.35, fillOpacity: near ? 0.95 : 0.18 });
         }
       });
+      // Catchment circle around the focused hex (shows which POIs count).
+      if (selectionCircle) {
+        map.removeLayer(selectionCircle);
+        selectionCircle = null;
+      }
+      if (sel) {
+        selectionCircle = L.circle([sel.hLat, sel.hLon], {
+          radius: radiusM,
+          color: '#2563eb',
+          weight: 1.5,
+          dashArray: '6 6',
+          fill: false,
+          interactive: false,
+        }).addTo(map);
+      }
       refreshLabels();
+    }
+
+    /** Re-render the currently open hex popup (after a scoring/radius change). */
+    function refreshOpenPopup(): void {
+      for (const key of Object.keys(hexLayers)) {
+        const layer = hexLayers[key];
+        if (layer.isPopupOpen()) {
+          layer.getPopup()?.update();
+          return;
+        }
+      }
     }
 
     const api: MapApi = {
@@ -302,6 +335,10 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         for (const k of Object.keys(hexLayers)) delete hexLayers[k];
         for (const k of Object.keys(hexData)) delete hexData[k];
         selectedKey = null;
+        if (selectionCircle) {
+          map.removeLayer(selectionCircle);
+          selectionCircle = null;
+        }
       },
       addHex(q, r, state, drivingTime) {
         const key = hexKey(q, r);
@@ -341,13 +378,14 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
             html += `<br><span style="font-size:11px;color:#d97706">Load POIs to score amenities</span>`;
           }
           if (currentPois.length) {
-            const counts = countNearbyPois(currentPois, hLat, hLon, NEARBY_RADIUS_M);
+            const radiusM = scoreCfg.nearbyRadiusM;
+            const counts = countNearbyPois(currentPois, hLat, hLon, radiusM);
             const lines = Object.entries(counts)
               .sort((a, b) => b[1] - a[1])
               .map(([cat, n]) => `${POI_LABELS[cat] ?? cat}: ${n}`);
             html +=
               `<hr class="my-1 border-gray-200">` +
-              `<b>Nearby (${NEARBY_RADIUS_M / 1000} km):</b><br>` +
+              `<b>Nearby (${radiusM / 1000} km):</b><br>` +
               (lines.length ? lines.join('<br>') : 'none');
           }
           return html + `</div>`;
@@ -400,6 +438,8 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       setScoreConfig(cfg) {
         scoreCfg = { ...scoreCfg, ...cfg };
         recolorAll();
+        emphasize();
+        refreshOpenPopup();
       },
       getRanking(limit) {
         const ranked: RankedHex[] = Object.values(hexData).map((h) => {

@@ -17,6 +17,8 @@ export interface AppConfig {
   colorMode: ColorMode;
   /** Weight of commute vs amenities in the liveability score (0..1). */
   commuteWeight: number;
+  /** Radius (km) within which amenities count toward a hex's score. */
+  nearbyRadiusKm: number;
   /** Map interaction: show all hexes, or focus one and fade the rest. */
   viewMode: ViewMode;
 }

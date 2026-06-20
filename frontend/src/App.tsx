@@ -112,9 +112,17 @@ export default function App() {
       mode: config.colorMode,
       commuteWeight: config.commuteWeight,
       categories: config.poiCategories,
+      nearbyRadiusM: config.nearbyRadiusKm * 1000,
     });
     refreshRanking();
-  }, [config.colorMode, config.commuteWeight, config.poiCategories, apiRef, refreshRanking]);
+  }, [
+    config.colorMode,
+    config.commuteWeight,
+    config.poiCategories,
+    config.nearbyRadiusKm,
+    apiRef,
+    refreshRanking,
+  ]);
 
   // Sync the map view mode (show all / navigate).
   useEffect(() => {
@@ -387,10 +395,12 @@ export default function App() {
             colorMode={config.colorMode}
             viewMode={config.viewMode}
             commuteWeight={config.commuteWeight}
+            nearbyRadiusKm={config.nearbyRadiusKm}
             ranking={ranking}
             onColorModeChange={(m) => setField('colorMode', m)}
             onViewModeChange={(m) => setField('viewMode', m)}
             onCommuteWeightChange={(w) => setField('commuteWeight', w)}
+            onNearbyRadiusChange={(v) => setField('nearbyRadiusKm', v)}
             onFocusHex={handleFocusHex}
           />
           )}
