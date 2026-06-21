@@ -34,8 +34,8 @@ export function LiveabilityPanel({
         {/* Color mode toggle */}
         <div>
           <label className="text-xs font-bold text-gray-700 block mb-1">Color hexes by</label>
-          <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg">
-            {(['commute', 'liveability'] as ColorMode[]).map((m) => (
+          <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 rounded-lg">
+            {(['commute', 'liveability', 'price'] as ColorMode[]).map((m) => (
               <button
                 key={m}
                 onClick={() => onColorModeChange(m)}
@@ -45,10 +45,16 @@ export function LiveabilityPanel({
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {m === 'commute' ? 'Commute' : 'Liveability'}
+                {m === 'commute' ? 'Commute' : m === 'liveability' ? 'Liveability' : 'Price'}
               </button>
             ))}
           </div>
+          {colorMode === 'price' && (
+            <p className="text-[10px] text-gray-400 leading-tight mt-1">
+              Green = cheaper, red = pricier (€/m²). Load data in the <b>Immo</b> tab; each hex
+              shows its commune's price trend in the popup.
+            </p>
+          )}
         </div>
 
         {/* View mode toggle */}

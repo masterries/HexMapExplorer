@@ -65,5 +65,35 @@ export const poiCache = pgTable('poi_cache', {
     .notNull(),
 });
 
+/** Per-commune asking-price series; `apartment`/`house` align to the shared
+ *  `years` array (null = no data that year, e.g. too few offers or a commune
+ *  that no longer exists after a merger). Prices are €/m². */
+export interface CommunePriceSeries {
+  name: string;
+  apartment: (number | null)[];
+  house: (number | null)[];
+}
+
+/** National real-estate price dataset, parsed from the Observatoire de
+ *  l'Habitat retrospective "prix annoncés" workbooks (data.public.lu, CC0). */
+export interface LuPriceData {
+  years: number[];
+  communes: CommunePriceSeries[];
+  source: string;
+  fetchedAt: string; // ISO timestamp of the parse
+}
+
+/**
+ * Cached real-estate price data. Like the POI cache, the expensive external
+ * fetch+parse is cached in Postgres; the national series is a single row.
+ */
+export const realEstateCache = pgTable('real_estate_cache', {
+  cacheKey: text('cache_key').primaryKey(),
+  data: jsonb('data').$type<LuPriceData>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' })
+    .defaultNow()
+    .notNull(),
+});
+
 export type MapRequest = typeof mapRequests.$inferSelect;
 export type NewMapRequest = typeof mapRequests.$inferInsert;

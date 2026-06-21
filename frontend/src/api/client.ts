@@ -1,4 +1,4 @@
-import type { BBox, CacheStats, MapRequest, Poi, SaveMapPayload } from '../types';
+import type { BBox, CacheStats, LuPrices, MapRequest, Poi, SaveMapPayload } from '../types';
 
 /**
  * Thin API client. All requests are same-origin relative /api/* URLs:
@@ -69,6 +69,13 @@ export function getPois(
   signal?: AbortSignal,
 ): Promise<{ pois: Poi[]; cached: boolean }> {
   return postJson('/api/poi', { ...bbox, categories, force }, signal);
+}
+
+/** Luxembourg commune-level asking-price series (cached + parsed by backend). */
+export async function getLuPrices(force = false): Promise<LuPrices> {
+  const res = await fetch(`/api/prices/lu${force ? '?force=1' : ''}`);
+  if (!res.ok) throw new Error(`Request to /api/prices/lu failed: ${res.status}`);
+  return res.json() as Promise<LuPrices>;
 }
 
 // --- Admin: cache management ---

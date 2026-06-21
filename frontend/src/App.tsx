@@ -4,7 +4,7 @@ import { useLeafletMap } from './hooks/useLeafletMap';
 import { useHeatmap } from './hooks/useHeatmap';
 import { geocode } from './services/nominatim';
 import { gridBbox } from './services/poi';
-import { getHistory, getPois, saveMap } from './api/client';
+import { getHistory, getLuPrices, getPois, saveMap } from './api/client';
 import type { AppConfig, MapRequest, PointKind, RankedHex } from './types';
 
 import { Sidebar } from './components/Sidebar';
@@ -20,6 +20,8 @@ import { LiveabilityPanel } from './components/LiveabilityPanel';
 import { HistoryPanel } from './components/HistoryPanel';
 import { InfoFooter } from './components/InfoFooter';
 import { AdminPanel } from './components/AdminPanel';
+import { PricePanel } from './components/PricePanel';
+import { buildCommuneIndex, loadCommuneGeo, type CommuneIndex } from './services/realEstate';
 
 const round4 = (n: number) => Number(n.toFixed(4));
 
@@ -36,6 +38,11 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [ranking, setRanking] = useState<RankedHex[]>([]);
   const [activeTab, setActiveTab] = useState('trip');
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceStatus, setPriceStatus] = useState('');
+  const [priceSource, setPriceSource] = useState('');
+  const [priceLoaded, setPriceLoaded] = useState(false);
+  const communeIndexRef = useRef<CommuneIndex | null>(null);
 
   // --- Map (imperative) ---
   const [pickFlow, setPickFlowState] = useState<'idle' | 'center' | 'dest'>('idle');
@@ -135,6 +142,11 @@ export default function App() {
     apiRef.current?.setViewMode(config.viewMode);
   }, [config.viewMode, apiRef]);
 
+  // Sync the active price metric (apartment/house) to the map.
+  useEffect(() => {
+    apiRef.current?.setPriceMetric(config.priceMetric);
+  }, [config.priceMetric, apiRef]);
+
   const handleFocusHex = useCallback(
     (q: number, r: number) => {
       apiRef.current?.focusHex(q, r);
@@ -169,6 +181,35 @@ export default function App() {
       }
     },
     [configRef, apiRef, refreshRanking],
+  );
+
+  // --- Real-estate prices (Luxembourg, commune-level) ---
+  // Fetches the parsed price series from the backend and the commune
+  // boundaries (once), then hands both to the map, which assigns each hex its
+  // containing commune by point-in-polygon.
+  const handlePriceLoad = useCallback(
+    async (force = false): Promise<void> => {
+      setPriceLoading(true);
+      setPriceStatus(force ? 'Reloading prices…' : 'Loading prices…');
+      try {
+        if (!communeIndexRef.current) {
+          communeIndexRef.current = buildCommuneIndex(await loadCommuneGeo());
+        }
+        const prices = await getLuPrices(force);
+        apiRef.current?.setPriceData(prices, communeIndexRef.current);
+        setPriceSource(prices.source);
+        setPriceLoaded(true);
+        const last = prices.years[prices.years.length - 1];
+        setPriceStatus(
+          `${prices.communes.length} communes · ${prices.years[0]}–${last}${prices.cached ? ' (cached)' : ''}`,
+        );
+      } catch {
+        setPriceStatus('Failed to load prices');
+      } finally {
+        setPriceLoading(false);
+      }
+    },
+    [apiRef],
   );
 
   // --- History ---
@@ -322,6 +363,7 @@ export default function App() {
             { key: 'trip', label: 'Trip' },
             { key: 'pois', label: 'POIs' },
             { key: 'score', label: 'Score' },
+            { key: 'prices', label: 'Immo' },
             { key: 'saved', label: 'Saved' },
           ]}
           active={activeTab}
@@ -421,6 +463,18 @@ export default function App() {
             onCommuteWeightChange={(w) => setField('commuteWeight', w)}
             onNearbyRadiusChange={(v) => setField('nearbyRadiusKm', v)}
             onFocusHex={handleFocusHex}
+          />
+          )}
+
+          {activeTab === 'prices' && (
+          <PricePanel
+            loaded={priceLoaded}
+            loading={priceLoading}
+            status={priceStatus}
+            metric={config.priceMetric}
+            source={priceSource}
+            onLoad={() => void handlePriceLoad()}
+            onMetricChange={(m) => setField('priceMetric', m)}
           />
           )}
 

@@ -19,14 +19,26 @@ import {
   type PoiIndex,
 } from '../services/poi';
 import { liveabilityScore, scoreColor, type HexScore } from '../services/liveability';
+import {
+  firstValue,
+  indexPricesByCommune,
+  latestValue,
+  normName,
+  seriesFor,
+  sparklineSvg,
+  type CommuneIndex,
+} from '../services/realEstate';
 
 /** Above this hex count, permanent labels are skipped (too dense + slow). */
 const LABEL_CAP = 800;
 import type {
   ColorMode,
+  CommunePrices,
   HexState,
+  LuPrices,
   PointKind,
   Poi,
+  PriceMetric,
   RankedHex,
   ViewMode,
 } from '../types';
@@ -73,6 +85,9 @@ export interface MapApi {
   getRanking(limit: number): RankedHex[];
   focusHex(q: number, r: number): void;
   setViewMode(mode: ViewMode): void;
+  setPriceData(prices: LuPrices, index: CommuneIndex): void;
+  clearPriceData(): void;
+  setPriceMetric(metric: PriceMetric): void;
 }
 
 interface UseLeafletMapOptions {
@@ -175,6 +190,16 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     let currentPois: Poi[] = [];
     let poiIndex: PoiIndex | null = null;
 
+    // --- Real-estate price layer (commune-level asking prices) ---
+    let priceData: LuPrices | null = null;
+    let priceByCommune = new Map<string, CommunePrices>();
+    let communeIndex: CommuneIndex | null = null;
+    let priceMetric: PriceMetric = 'apartment';
+    let priceMin = 0;
+    let priceMax = 1;
+    // hexKey -> containing commune display name (or null if outside Luxembourg).
+    const hexCommune: Record<string, string | null> = {};
+
     // Per-hex data kept for re-coloring and ranking by liveability score.
     const hexData: Record<
       string,
@@ -213,10 +238,77 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     const countsFor = (hLat: number, hLon: number): Record<string, number> =>
       poiIndex ? poiIndex.query(hLat, hLon, scoreCfg.nearbyRadiusM) : {};
 
+    // --- Price helpers ---
+    /** Latest €/m² for a commune's active metric, or null if unknown. */
+    function priceValueForCommune(commune: string | null): number | null {
+      if (!commune || !priceData) return null;
+      const c = priceByCommune.get(normName(commune));
+      return c ? latestValue(seriesFor(c, priceMetric)) : null;
+    }
+    /** Latest €/m² for the commune containing a point. */
+    function priceValueAt(hLat: number, hLon: number): number | null {
+      return priceValueForCommune(communeIndex ? communeIndex.locate(hLat, hLon) : null);
+    }
+    /** Fit the price color ramp to the latest values present in the grid. */
+    function computePriceRamp(): void {
+      let min = Infinity;
+      let max = -Infinity;
+      for (const key of Object.keys(hexData)) {
+        const v = priceValueForCommune(hexCommune[key] ?? null);
+        if (v == null) continue;
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
+      if (min === Infinity) {
+        priceMin = 0;
+        priceMax = 1;
+      } else if (min === max) {
+        priceMin = min * 0.9;
+        priceMax = max * 1.1 || 1;
+      } else {
+        priceMin = min;
+        priceMax = max;
+      }
+    }
+    /** On-hex price label: €/m² in thousands (e.g. 8236 -> "8.2"). */
+    const kEur = (v: number): string => (v / 1000).toFixed(1);
+
+    /** Price breakdown for the hex popup: apartment + house trend sparklines. */
+    function pricePopupHtml(commune: string, c: CommunePrices): string {
+      const yrs = priceData!.years;
+      const range = `${yrs[0]}–${yrs[yrs.length - 1]}`;
+      const row = (lbl: string, series: (number | null)[], color: string): string => {
+        const last = latestValue(series);
+        if (last == null) return '';
+        const first = firstValue(series);
+        const pct = first ? Math.round(((last - first) / first) * 100) : null;
+        const pctHtml =
+          pct != null
+            ? ` <span style="color:${pct >= 0 ? '#16a34a' : '#dc2626'}">${pct >= 0 ? '+' : ''}${pct}%</span>`
+            : '';
+        return (
+          `<div style="margin-top:4px">` +
+          `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">` +
+          `<span style="font-weight:600">${lbl}</span>` +
+          `<span style="font-family:monospace;font-size:11px">${Math.round(last).toLocaleString('de-DE')}&nbsp;€/m²${pctHtml}</span>` +
+          `</div>${sparklineSvg(series, { stroke: color })}</div>`
+        );
+      };
+      return (
+        `<hr class="my-1 border-gray-200">` +
+        `<b>${commune}</b> <span style="font-size:10px;color:#6b7280">${range} · Angebotspreise</span>` +
+        row('Wohnung', c.apartment, '#2563eb') +
+        row('Haus', c.house, '#ea580c')
+      );
+    }
+
     /** Fill color for a hex, depending on the current color mode. */
     function fillFor(time: number | null, hLat: number, hLon: number): string {
       if (scoreCfg.mode === 'commute') {
         return getColor(time, renderConfig.colorMin, renderConfig.colorMax);
+      }
+      if (scoreCfg.mode === 'price') {
+        return getColor(priceValueAt(hLat, hLon), priceMin, priceMax);
       }
       return scoreColor(
         liveabilityScore(time, countsFor(hLat, hLon), scoreParams()).score,
@@ -229,30 +321,38 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         const s = liveabilityScore(time, countsFor(hLat, hLon), scoreParams()).score;
         return String(Math.round(s * 100));
       }
+      if (scoreCfg.mode === 'price') {
+        const v = priceValueAt(hLat, hLon);
+        return v != null ? kEur(v) : '';
+      }
       return time != null ? String(Math.round(time)) : '';
     }
 
     /** Recompute scores (cached) + re-apply fill colors and labels. */
     function recolorAll(): void {
       const params = scoreParams();
-      const commute = scoreCfg.mode === 'commute';
+      const mode = scoreCfg.mode;
       for (const key of Object.keys(hexData)) {
         const h = hexData[key];
+        // Always keep the liveability score fresh so ranking works in any mode.
         const sc = liveabilityScore(h.time, countsFor(h.hLat, h.hLon), params);
         hexScore[key] = sc;
-        const fill = commute
-          ? getColor(h.time, renderConfig.colorMin, renderConfig.colorMax)
-          : scoreColor(sc.score);
+        let fill: string;
+        let label: string;
+        if (mode === 'commute') {
+          fill = getColor(h.time, renderConfig.colorMin, renderConfig.colorMax);
+          label = h.time != null ? String(Math.round(h.time)) : '';
+        } else if (mode === 'price') {
+          const v = priceValueForCommune(hexCommune[key] ?? null);
+          fill = getColor(v, priceMin, priceMax);
+          label = v != null ? kEur(v) : '';
+        } else {
+          fill = scoreColor(sc.score);
+          label = String(Math.round(sc.score * 100));
+        }
         const layer = hexLayers[key];
         layer?.setStyle({ fillColor: fill });
-        if (layer?.getTooltip()) {
-          const label = commute
-            ? h.time != null
-              ? String(Math.round(h.time))
-              : ''
-            : String(Math.round(sc.score * 100));
-          layer.setTooltipContent(label);
-        }
+        if (layer?.getTooltip()) layer.setTooltipContent(label);
       }
     }
 
@@ -372,6 +472,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         for (const k of Object.keys(hexLayers)) delete hexLayers[k];
         for (const k of Object.keys(hexData)) delete hexData[k];
         for (const k of Object.keys(hexScore)) delete hexScore[k];
+        for (const k of Object.keys(hexCommune)) delete hexCommune[k];
         selectedKey = null;
         if (selectionCircle) {
           map.removeLayer(selectionCircle);
@@ -426,11 +527,24 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
               `<b>Nearby (${radiusM / 1000} km):</b><br>` +
               (lines.length ? lines.join('<br>') : 'none');
           }
+          if (priceData) {
+            const commune =
+              hexCommune[key] ?? (communeIndex ? communeIndex.locate(hLat, hLon) : null);
+            const c = commune ? priceByCommune.get(normName(commune)) : null;
+            if (c) html += pricePopupHtml(commune as string, c);
+            else if (commune)
+              html +=
+                `<hr class="my-1 border-gray-200"><b>${commune}</b><br>` +
+                `<span style="font-size:11px;color:#9ca3af">no price data for this commune</span>`;
+          }
           return html + `</div>`;
         });
         layer.addTo(hexLayerGroup);
         hexLayers[key] = layer;
-        if (state === 'done') hexData[key] = { q, r, hLat, hLon, time: drivingTime };
+        if (state === 'done') {
+          hexData[key] = { q, r, hLat, hLon, time: drivingTime };
+          if (communeIndex) hexCommune[key] = communeIndex.locate(hLat, hLon);
+        }
 
         if (state === 'done') {
           // Skip permanent labels for very large grids (too dense + slow).
@@ -525,6 +639,33 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           map.closePopup();
         }
         emphasize();
+      },
+      setPriceData(prices, index) {
+        priceData = prices;
+        priceByCommune = indexPricesByCommune(prices);
+        communeIndex = index;
+        for (const key of Object.keys(hexData)) {
+          const h = hexData[key];
+          hexCommune[key] = index.locate(h.hLat, h.hLon);
+        }
+        computePriceRamp();
+        recolorAll();
+        emphasize();
+        refreshOpenPopup();
+      },
+      clearPriceData() {
+        priceData = null;
+        priceByCommune = new Map();
+        communeIndex = null;
+        for (const k of Object.keys(hexCommune)) delete hexCommune[k];
+        recolorAll();
+        refreshOpenPopup();
+      },
+      setPriceMetric(metric) {
+        priceMetric = metric;
+        computePriceRamp();
+        recolorAll();
+        refreshOpenPopup();
       },
     };
 

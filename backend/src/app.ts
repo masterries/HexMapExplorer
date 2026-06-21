@@ -4,6 +4,7 @@ import { env } from './env.js';
 import { cacheRoutes } from './routes/cache.js';
 import { mapRoutes } from './routes/maps.js';
 import { poiRoutes } from './routes/poi.js';
+import { priceRoutes } from './routes/prices.js';
 import { adminRoutes } from './routes/admin.js';
 
 /**
@@ -27,6 +28,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(cacheRoutes);
       await api.register(mapRoutes);
       await api.register(poiRoutes);
+      await api.register(priceRoutes);
       await api.register(adminRoutes);
     },
     { prefix: '/api' },

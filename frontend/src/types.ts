@@ -21,10 +21,29 @@ export interface AppConfig {
   nearbyRadiusKm: number;
   /** Map interaction: show all hexes, or focus one and fade the rest. */
   viewMode: ViewMode;
+  /** Which real-estate series colors/labels hexes in 'price' mode. */
+  priceMetric: PriceMetric;
 }
 
-export type ColorMode = 'commute' | 'liveability';
+export type ColorMode = 'commute' | 'liveability' | 'price';
 export type ViewMode = 'all' | 'navigate';
+export type PriceMetric = 'apartment' | 'house';
+
+/** Per-commune asking-price series (€/m²); arrays align to LuPrices.years. */
+export interface CommunePrices {
+  name: string;
+  apartment: (number | null)[];
+  house: (number | null)[];
+}
+
+/** National real-estate price dataset from the backend /api/prices/lu route. */
+export interface LuPrices {
+  years: number[];
+  communes: CommunePrices[];
+  source: string;
+  fetchedAt: string;
+  cached?: boolean;
+}
 
 /** A hex ranked by liveability score. */
 export interface RankedHex {

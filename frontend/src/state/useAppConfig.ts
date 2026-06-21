@@ -17,6 +17,7 @@ const DEFAULT_CONFIG: AppConfig = {
   commuteWeight: 0.6,
   nearbyRadiusKm: 1.0,
   viewMode: 'all',
+  priceMetric: 'apartment',
 };
 
 /**
