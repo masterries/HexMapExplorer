@@ -115,8 +115,8 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
                 ≈ {Math.round(latestValue(apartment as (number | null)[]) ?? 0).toLocaleString('de-DE')} €/m²
               </div>
               <div className="text-[10px] text-gray-400 mt-1 leading-tight px-2">
-                Indicative estimate · German border — a rough ballpark from a few seed towns,
-                not an official figure or a real trend.
+                Indicative estimate · cross-border seed (DE/BE/FR) — a rough ballpark from a few
+                towns, not official or a real trend.
               </div>
             </div>
           ) : hasPrice ? (

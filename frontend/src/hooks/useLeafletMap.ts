@@ -28,7 +28,7 @@ import {
   sparklineSvg,
   type CommuneIndex,
 } from '../services/realEstate';
-import { nearestDeTown } from '../services/germanPrices';
+import { nearestBorderTown } from '../services/borderPrices';
 
 /** Above this hex count, permanent labels are skipped (too dense + slow). */
 const LABEL_CAP = 800;
@@ -260,7 +260,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       if (!priceData) return null;
       const lu = communeIndex ? communeIndex.locate(hLat, hLon) : null;
       if (lu) return luPriceForCommune(lu);
-      return nearestDeTown(hLat, hLon)?.perM2 ?? null;
+      return nearestBorderTown(hLat, hLon)?.perM2 ?? null;
     }
     /** Same as priceValueAt, keyed by an already-located hex (uses caches). */
     function priceValueForKey(key: string): number | null {
@@ -268,7 +268,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       const commune = hexCommune[key];
       if (commune) return luPriceForCommune(commune);
       const h = hexData[key];
-      return h ? (nearestDeTown(h.hLat, h.hLon)?.perM2 ?? null) : null;
+      return h ? (nearestBorderTown(h.hLat, h.hLon)?.perM2 ?? null) : null;
     }
     /** Fit the price color ramp to the values present in the grid. */
     function computePriceRamp(): void {
@@ -489,9 +489,9 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       const luCommune =
         hexCommune[key] ?? (communeIndex ? communeIndex.locate(h.hLat, h.hLon) : null);
       const c = luCommune ? priceByCommune.get(normName(luCommune)) : null;
-      // German-border fallback: an indicative single value for hexes outside LU.
-      const de = !luCommune && priceData ? nearestDeTown(h.hLat, h.hLon) : null;
-      const commune = luCommune ?? (de ? `${de.name} (DE)` : null);
+      // Cross-border fallback: an indicative single value for hexes outside LU.
+      const bt = !luCommune && priceData ? nearestBorderTown(h.hLat, h.hLon) : null;
+      const commune = luCommune ?? (bt ? `${bt.name} (${bt.country})` : null);
       // Actual nearby POIs (with names + distance) inside the amenity radius.
       const nearbyPois = currentPois
         .map((p) => ({
@@ -520,10 +520,10 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         nearbyPois,
         commune,
         years: c && priceData ? priceData.years : null,
-        apartment: de ? [de.perM2] : c ? c.apartment : null,
-        house: de ? [de.perM2] : c ? c.house : null,
+        apartment: bt ? [bt.perM2] : c ? c.apartment : null,
+        house: bt ? [bt.perM2] : c ? c.house : null,
         priceSource: priceData ? priceData.source : null,
-        priceApprox: de != null,
+        priceApprox: bt != null,
       };
     }
 
