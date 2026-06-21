@@ -51,6 +51,8 @@ export interface LuPrices {
 export interface NearbyPoi {
   category: string;
   name?: string;
+  lat: number;
+  lon: number;
   distM: number;
 }
 

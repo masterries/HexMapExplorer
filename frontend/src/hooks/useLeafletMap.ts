@@ -479,6 +479,8 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         .map((p) => ({
           category: p.category,
           name: p.name,
+          lat: p.lat,
+          lon: p.lon,
           distM: Math.round(approxDistMeters(h.hLat, h.hLon, p.lat, p.lon)),
         }))
         .filter((p) => p.distM <= scoreCfg.nearbyRadiusM)

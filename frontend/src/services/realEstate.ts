@@ -169,3 +169,12 @@ export async function loadCommuneGeo(): Promise<{ features: CommuneFeature[] }> 
   if (!res.ok) throw new Error(`commune boundaries failed: ${res.status}`);
   return (await res.json()) as { features: CommuneFeature[] };
 }
+
+/** Human-readable data.public.lu page for the asking-price series (CC0). */
+export const PRICE_SOURCE_URL =
+  'https://data.public.lu/en/datasets/prix-annonces-des-logements-par-commune/';
+
+/** OpenStreetMap link centered on a point, so a nearby place can be verified. */
+export function osmLink(lat: number, lon: number): string {
+  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`;
+}

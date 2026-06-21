@@ -1,6 +1,6 @@
 import { PriceChart } from './PriceChart';
 import { POI_LABELS } from '../services/poi';
-import { firstValue, latestValue } from '../services/realEstate';
+import { firstValue, latestValue, osmLink, PRICE_SOURCE_URL } from '../services/realEstate';
 import type { HexDetail, NearbyPoi } from '../types';
 
 interface HexDetailViewProps {
@@ -115,7 +115,15 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
                 {priceRow('House', house as (number | null)[], '#ea580c')}
               </div>
               <p className="text-[10px] text-gray-400 mt-1 leading-tight">
-                {detail.priceSource ?? ''} — advertised prices, not prices paid.
+                <a
+                  href={PRICE_SOURCE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-dotted hover:text-blue-600"
+                >
+                  {detail.priceSource ?? "Observatoire de l'Habitat · data.public.lu"}
+                </a>{' '}
+                — advertised prices, not prices paid.
               </p>
             </>
           ) : (
@@ -143,9 +151,15 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
                   <ul className="mt-0.5 space-y-0.5">
                     {items.slice(0, 4).map((p, i) => (
                       <li key={i} className="flex items-center justify-between gap-2 text-[11px]">
-                        <span className="truncate text-gray-500">
+                        <a
+                          href={osmLink(p.lat, p.lon)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Open in OpenStreetMap"
+                          className="truncate text-gray-500 hover:text-blue-600 hover:underline"
+                        >
                           {p.name ? p.name : <span className="italic text-gray-400">unnamed</span>}
-                        </span>
+                        </a>
                         <span className="font-mono text-gray-400 shrink-0">{fmtDist(p.distM)}</span>
                       </li>
                     ))}
@@ -156,7 +170,16 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
                 </div>
               ))}
               <p className="text-[10px] text-gray-400 leading-tight pt-1">
-                Names from OpenStreetMap. Ratings/reviews aren't available in OSM data.
+                Click a place to open it on{' '}
+                <a
+                  href="https://www.openstreetmap.org/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-dotted hover:text-blue-600"
+                >
+                  OpenStreetMap
+                </a>
+                . Ratings/reviews aren't available in OSM data.
               </p>
             </div>
           ) : (

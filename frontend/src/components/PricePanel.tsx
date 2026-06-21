@@ -1,3 +1,4 @@
+import { PRICE_SOURCE_URL } from '../services/realEstate';
 import type { PriceMetric } from '../types';
 
 interface PricePanelProps {
@@ -67,8 +68,16 @@ export function PricePanel({
         </div>
 
         <p className="text-[10px] text-gray-400 leading-tight">
-          {source || "Observatoire de l'Habitat · data.public.lu (CC0)"} — advertised prices,
-          not prices actually paid. Single-family houses have no transaction-price series.
+          <a
+            href={PRICE_SOURCE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-dotted hover:text-blue-600"
+          >
+            {source || "Observatoire de l'Habitat · data.public.lu (CC0)"}
+          </a>{' '}
+          — advertised prices, not prices actually paid. Single-family houses have no
+          transaction-price series.
         </p>
       </div>
     </div>
