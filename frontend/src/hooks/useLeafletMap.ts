@@ -34,6 +34,7 @@ const LABEL_CAP = 800;
 import type {
   ColorMode,
   CommunePrices,
+  HexDetail,
   HexState,
   LuPrices,
   PointKind,
@@ -93,6 +94,8 @@ export interface MapApi {
 interface UseLeafletMapOptions {
   onPick(kind: PointKind, lat: number, lon: number): void;
   onMarkerDrag(kind: PointKind, lat: number, lon: number): void;
+  /** Fired when a hex is clicked (detail) or deselected (null). */
+  onHexSelect(detail: HexDetail | null): void;
 }
 
 const DEST_PIN_HTML =
@@ -178,6 +181,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         selectedKey = null;
         map.closePopup();
         emphasize();
+        optionsRef.current.onHexSelect(null);
       }
     });
 
@@ -440,6 +444,35 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       }
     }
 
+    /** Build the full detail payload for a hex (for the sidebar detail view). */
+    function buildHexDetail(key: string): HexDetail | null {
+      const h = hexData[key];
+      if (!h) return null;
+      const counts = countsFor(h.hLat, h.hLon);
+      const sc = liveabilityScore(h.time, counts, scoreParams());
+      const commune =
+        hexCommune[key] ?? (communeIndex ? communeIndex.locate(h.hLat, h.hLon) : null);
+      const c = commune ? priceByCommune.get(normName(commune)) : null;
+      return {
+        q: h.q,
+        r: h.r,
+        lat: h.hLat,
+        lon: h.hLon,
+        time: h.time,
+        score: sc.score,
+        commuteScore: sc.commuteScore,
+        poiScore: sc.poiScore,
+        commuteWeight: scoreCfg.commuteWeight,
+        nearbyRadiusM: scoreCfg.nearbyRadiusM,
+        counts,
+        commune,
+        years: priceData ? priceData.years : null,
+        apartment: c ? c.apartment : null,
+        house: c ? c.house : null,
+        priceSource: priceData ? priceData.source : null,
+      };
+    }
+
     const api: MapApi = {
       setMarker(kind, lat, lon) {
         if (kind === 'center') centerMarker.setLatLng([lat, lon]);
@@ -548,8 +581,10 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
 
         if (state === 'done') {
           // Skip permanent labels for very large grids (too dense + slow).
-          const labelsAllowed =
-            renderConfig.showLabels && hexCount(renderConfig.radius) <= LABEL_CAP;
+          // Large (low-res) hexes are sparse on screen, so allow many more
+          // before skipping labels; dense small-hex grids keep the tight cap.
+          const cap = renderConfig.hexSize >= 1.0 ? 2500 : LABEL_CAP;
+          const labelsAllowed = renderConfig.showLabels && hexCount(renderConfig.radius) <= cap;
           if (labelsAllowed) {
             const visibilityClass = labelsVisible() ? 'opacity-100' : 'opacity-0';
             layer.bindTooltip(labelFor(drivingTime, hLat, hLon), {
@@ -558,12 +593,14 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
               className: `hex-label ${visibilityClass} transition-opacity duration-300 font-bold text-gray-700 pointer-events-none`,
             });
           }
-          // Navigate mode: clicking focuses this hex (fades the rest).
+          // Clicking a hex opens its detail view (and focuses it in navigate).
           layer.on('click', (e) => {
-            if (viewMode !== 'navigate') return;
-            L.DomEvent.stopPropagation(e);
-            selectedKey = key;
-            emphasize();
+            optionsRef.current.onHexSelect(buildHexDetail(key));
+            if (viewMode === 'navigate') {
+              L.DomEvent.stopPropagation(e);
+              selectedKey = key;
+              emphasize();
+            }
           });
         }
       },
@@ -630,6 +667,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           selectedKey = key;
           emphasize();
         }
+        optionsRef.current.onHexSelect(buildHexDetail(key));
         hexLayers[key]?.openPopup();
       },
       setViewMode(mode) {

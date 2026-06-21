@@ -45,6 +45,28 @@ export interface LuPrices {
   cached?: boolean;
 }
 
+/** Everything needed to render the per-hex detail view (built by the map hook
+ *  on click and handed to React). */
+export interface HexDetail {
+  q: number;
+  r: number;
+  lat: number;
+  lon: number;
+  time: number | null;
+  score: number;
+  commuteScore: number;
+  poiScore: number;
+  commuteWeight: number;
+  nearbyRadiusM: number;
+  counts: Record<string, number>;
+  /** Commune containing the hex, or null if outside Luxembourg / no data loaded. */
+  commune: string | null;
+  years: number[] | null;
+  apartment: (number | null)[] | null;
+  house: (number | null)[] | null;
+  priceSource: string | null;
+}
+
 /** A hex ranked by liveability score. */
 export interface RankedHex {
   q: number;

@@ -5,7 +5,7 @@ import { useHeatmap } from './hooks/useHeatmap';
 import { geocode } from './services/nominatim';
 import { gridBbox } from './services/poi';
 import { getHistory, getLuPrices, getPois, saveMap } from './api/client';
-import type { AppConfig, MapRequest, PointKind, RankedHex } from './types';
+import type { AppConfig, HexDetail, MapRequest, PointKind, RankedHex } from './types';
 
 import { Sidebar } from './components/Sidebar';
 import { TabBar } from './components/TabBar';
@@ -21,6 +21,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { InfoFooter } from './components/InfoFooter';
 import { AdminPanel } from './components/AdminPanel';
 import { PricePanel } from './components/PricePanel';
+import { HexDetailView } from './components/HexDetailView';
 import { buildCommuneIndex, loadCommuneGeo, type CommuneIndex } from './services/realEstate';
 
 const round4 = (n: number) => Number(n.toFixed(4));
@@ -43,6 +44,7 @@ export default function App() {
   const [priceSource, setPriceSource] = useState('');
   const [priceLoaded, setPriceLoaded] = useState(false);
   const communeIndexRef = useRef<CommuneIndex | null>(null);
+  const [selectedHex, setSelectedHex] = useState<HexDetail | null>(null);
 
   // --- Map (imperative) ---
   const [pickFlow, setPickFlowState] = useState<'idle' | 'center' | 'dest'>('idle');
@@ -70,6 +72,10 @@ export default function App() {
   const { containerRef, apiRef } = useLeafletMap({
     onPick: (k, la, lo) => mapHandlersRef.current.onPick(k, la, lo),
     onMarkerDrag: (k, la, lo) => mapHandlersRef.current.onDrag(k, la, lo),
+    onHexSelect: (d) => {
+      setSelectedHex(d);
+      if (d) setMobileOpen(true);
+    },
   });
 
   // Dragging a marker only updates its coordinates.
@@ -358,6 +364,10 @@ export default function App() {
           </div>
         </div>
 
+        {selectedHex ? (
+          <HexDetailView detail={selectedHex} onClose={() => setSelectedHex(null)} />
+        ) : (
+        <>
         <TabBar
           tabs={[
             { key: 'trip', label: 'Trip' },
@@ -490,6 +500,8 @@ export default function App() {
           />
           )}
         </div>
+        </>
+        )}
       </Sidebar>
 
       <MapView containerRef={containerRef} />
