@@ -106,8 +106,20 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
         </div>
 
         <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">Price trend (€/m²)</label>
-          {hasPrice ? (
+          <label className="text-xs font-bold text-gray-700 block mb-1">
+            {detail.priceApprox ? 'Price (€/m²)' : 'Price trend (€/m²)'}
+          </label>
+          {detail.priceApprox ? (
+            <div className="text-center py-3 bg-gray-50 rounded-lg">
+              <div className="text-lg font-bold text-blue-600 font-mono leading-none">
+                ≈ {Math.round(latestValue(apartment as (number | null)[]) ?? 0).toLocaleString('de-DE')} €/m²
+              </div>
+              <div className="text-[10px] text-gray-400 mt-1 leading-tight px-2">
+                Indicative estimate · German border — a rough ballpark from a few seed towns,
+                not an official figure or a real trend.
+              </div>
+            </div>
+          ) : hasPrice ? (
             <>
               <PriceChart years={years as number[]} apartment={apartment as (number | null)[]} house={house as (number | null)[]} />
               <div className="space-y-1 mt-2">

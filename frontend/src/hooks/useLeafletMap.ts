@@ -28,6 +28,7 @@ import {
   sparklineSvg,
   type CommuneIndex,
 } from '../services/realEstate';
+import { nearestDeTown } from '../services/germanPrices';
 
 /** Above this hex count, permanent labels are skipped (too dense + slow). */
 const LABEL_CAP = 800;
@@ -246,23 +247,35 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     const countsFor = (hLat: number, hLon: number): Record<string, number> =>
       poiIndex ? poiIndex.query(hLat, hLon, scoreCfg.nearbyRadiusM) : {};
 
-    // --- Price helpers ---
-    /** Latest €/m² for a commune's active metric, or null if unknown. */
-    function priceValueForCommune(commune: string | null): number | null {
+    // --- Price helpers (Luxembourg commune, with a German-border fallback) ---
+    /** Latest €/m² for an LU commune's active metric (real data), or null. */
+    function luPriceForCommune(commune: string | null): number | null {
       if (!commune || !priceData) return null;
       const c = priceByCommune.get(normName(commune));
       return c ? latestValue(seriesFor(c, priceMetric)) : null;
     }
-    /** Latest €/m² for the commune containing a point. */
+    /** €/m² for a point: LU commune price, else an indicative German-border
+     *  value for hexes outside Luxembourg. Active once prices are loaded. */
     function priceValueAt(hLat: number, hLon: number): number | null {
-      return priceValueForCommune(communeIndex ? communeIndex.locate(hLat, hLon) : null);
+      if (!priceData) return null;
+      const lu = communeIndex ? communeIndex.locate(hLat, hLon) : null;
+      if (lu) return luPriceForCommune(lu);
+      return nearestDeTown(hLat, hLon)?.perM2 ?? null;
     }
-    /** Fit the price color ramp to the latest values present in the grid. */
+    /** Same as priceValueAt, keyed by an already-located hex (uses caches). */
+    function priceValueForKey(key: string): number | null {
+      if (!priceData) return null;
+      const commune = hexCommune[key];
+      if (commune) return luPriceForCommune(commune);
+      const h = hexData[key];
+      return h ? (nearestDeTown(h.hLat, h.hLon)?.perM2 ?? null) : null;
+    }
+    /** Fit the price color ramp to the values present in the grid. */
     function computePriceRamp(): void {
       let min = Infinity;
       let max = -Infinity;
       for (const key of Object.keys(hexData)) {
-        const v = priceValueForCommune(hexCommune[key] ?? null);
+        const v = priceValueForKey(key);
         if (v == null) continue;
         if (v < min) min = v;
         if (v > max) max = v;
@@ -351,7 +364,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           fill = getColor(h.time, renderConfig.colorMin, renderConfig.colorMax);
           label = h.time != null ? String(Math.round(h.time)) : '';
         } else if (mode === 'price') {
-          const v = priceValueForCommune(hexCommune[key] ?? null);
+          const v = priceValueForKey(key);
           fill = getColor(v, priceMin, priceMax);
           label = v != null ? kEur(v) : '';
         } else {
@@ -360,7 +373,9 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         }
         const layer = hexLayers[key];
         layer?.setStyle({ fillColor: fill });
-        if (layer?.getTooltip()) layer.setTooltipContent(label);
+        // Use a space for empty labels — setTooltipContent('') is a no-op in
+        // Leaflet, which would leave a stale number on no-data hexes.
+        if (layer?.getTooltip()) layer.setTooltipContent(label || ' ');
       }
     }
 
@@ -471,9 +486,12 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       if (!h) return null;
       const counts = countsFor(h.hLat, h.hLon);
       const sc = liveabilityScore(h.time, counts, scoreParams());
-      const commune =
+      const luCommune =
         hexCommune[key] ?? (communeIndex ? communeIndex.locate(h.hLat, h.hLon) : null);
-      const c = commune ? priceByCommune.get(normName(commune)) : null;
+      const c = luCommune ? priceByCommune.get(normName(luCommune)) : null;
+      // German-border fallback: an indicative single value for hexes outside LU.
+      const de = !luCommune && priceData ? nearestDeTown(h.hLat, h.hLon) : null;
+      const commune = luCommune ?? (de ? `${de.name} (DE)` : null);
       // Actual nearby POIs (with names + distance) inside the amenity radius.
       const nearbyPois = currentPois
         .map((p) => ({
@@ -501,10 +519,11 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         counts,
         nearbyPois,
         commune,
-        years: priceData ? priceData.years : null,
-        apartment: c ? c.apartment : null,
-        house: c ? c.house : null,
+        years: c && priceData ? priceData.years : null,
+        apartment: de ? [de.perM2] : c ? c.apartment : null,
+        house: de ? [de.perM2] : c ? c.house : null,
         priceSource: priceData ? priceData.source : null,
+        priceApprox: de != null,
       };
     }
 

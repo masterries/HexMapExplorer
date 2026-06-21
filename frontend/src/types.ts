@@ -80,6 +80,9 @@ export interface HexDetail {
   apartment: (number | null)[] | null;
   house: (number | null)[] | null;
   priceSource: string | null;
+  /** True when the price is an indicative single value (German border seed),
+   *  not a real per-commune trend — render it as an estimate, not a chart. */
+  priceApprox?: boolean;
 }
 
 /** A hex ranked by liveability score. */
