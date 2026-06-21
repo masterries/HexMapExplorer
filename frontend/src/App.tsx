@@ -23,6 +23,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { PricePanel } from './components/PricePanel';
 import { HexDetailView } from './components/HexDetailView';
 import { SettingsPanel } from './components/SettingsPanel';
+import { FocusSearch, type Command } from './components/FocusSearch';
 import { buildCommuneIndex, loadCommuneGeo, type CommuneIndex } from './services/realEstate';
 
 const round4 = (n: number) => Number(n.toFixed(4));
@@ -305,6 +306,19 @@ export default function App() {
     [patch, apiRef],
   );
 
+  // Focus search: picking a place sets the search center and flies there.
+  const handleFocusPlace = useCallback(
+    (lat: number, lon: number) => {
+      const rlat = round4(lat);
+      const rlon = round4(lon);
+      patch({ centerLat: rlat, centerLon: rlon });
+      apiRef.current?.setMarker('center', rlat, rlon);
+      apiRef.current?.flyTo(rlat, rlon, 13);
+      setMobileOpen(false);
+    },
+    [patch, apiRef],
+  );
+
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     try {
@@ -336,6 +350,22 @@ export default function App() {
     apiRef.current?.clearPois();
     setPoiStatus('');
   }, [apiRef]);
+
+  const commands: Command[] = [
+    { id: 'generate', label: 'Generate heatmap', hint: '↵', run: () => void handleGenerate() },
+    { id: 'load-prices', label: 'Load Luxembourg prices', run: () => void handlePriceLoad() },
+    { id: 'load-pois', label: 'Load POIs', run: () => void handlePoiLoad() },
+    { id: 'color-commute', label: 'Color hexes by Commute', run: () => setField('colorMode', 'commute') },
+    { id: 'color-liveability', label: 'Color hexes by Liveability', run: () => setField('colorMode', 'liveability') },
+    { id: 'color-price', label: 'Color hexes by Price', run: () => setField('colorMode', 'price') },
+    {
+      id: 'perf',
+      label: config.performanceMode ? 'Turn performance mode off' : 'Turn performance mode on',
+      run: () => setField('performanceMode', !config.performanceMode),
+    },
+    { id: 'pick-both', label: 'Pick both points on the map', run: startPickBoth },
+    { id: 'open-settings', label: 'Open Settings', run: () => setActiveTab('settings') },
+  ];
 
   return (
     <div className="app-shell flex h-screen w-screen overflow-hidden font-sans text-gray-800">
@@ -517,6 +547,10 @@ export default function App() {
       </Sidebar>
 
       <MapView containerRef={containerRef} />
+
+      {pickFlow === 'idle' && (
+        <FocusSearch commands={commands} onPickPlace={handleFocusPlace} />
+      )}
 
       {pickFlow !== 'idle' && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 bg-white dark:bg-gray-800 shadow-xl rounded-full pl-4 pr-2 py-2 border border-gray-200 dark:border-gray-700">
