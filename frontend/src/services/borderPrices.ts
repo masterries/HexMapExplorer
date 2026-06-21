@@ -34,6 +34,15 @@ export const BORDER_TOWNS: BorderTown[] = [
   { name: 'Dillingen', country: 'DE', lat: 49.3567, lon: 6.7289, perM2: 2300 },
   { name: 'Saarbrücken', country: 'DE', lat: 49.2402, lon: 6.9969, perM2: 2900 },
   { name: 'Wadgassen', country: 'DE', lat: 49.2706, lon: 6.7872, perM2: 2200 },
+  // Eifel / Sauer border villages directly facing Luxembourg (Eifelkreis
+  // Bitburg-Prüm) — regional market-report range, LU-commuter premium near the river.
+  { name: 'Bollendorf', country: 'DE', lat: 49.8514, lon: 6.3611, perM2: 2200 },
+  { name: 'Echternacherbrück', country: 'DE', lat: 49.8133, lon: 6.4267, perM2: 2300 },
+  { name: 'Ferschweiler', country: 'DE', lat: 49.8569, lon: 6.3981, perM2: 2000 },
+  { name: 'Irrel', country: 'DE', lat: 49.8439, lon: 6.4564, perM2: 2100 },
+  { name: 'Wallendorf (Eifel)', country: 'DE', lat: 49.8714, lon: 6.2897, perM2: 2000 },
+  { name: 'Körperich', country: 'DE', lat: 49.9183, lon: 6.3019, perM2: 1900 },
+  { name: 'Neuerburg', country: 'DE', lat: 49.9981, lon: 6.2722, perM2: 1900 },
   // --- Belgium (Province de Luxembourg, Arlon area) ---
   { name: 'Arlon', country: 'BE', lat: 49.6833, lon: 5.8167, perM2: 3000 },
   { name: 'Messancy', country: 'BE', lat: 49.5969, lon: 5.8186, perM2: 2700 },
