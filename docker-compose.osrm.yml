@@ -1,0 +1,60 @@
+# Self-hosted OSRM routing overlay — removes the dependency on the rate-limited
+# public OSRM demo (the source of occasional gray hexes). Run it alongside the
+# base compose:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.osrm.yml up --build
+#
+# First start downloads the OSM extract (OSRM_EXTRACT_URL, default Luxembourg)
+# and preprocesses the routing graph (a few minutes); later starts reuse it.
+# The SPA is rebuilt to call /osrm, which nginx proxies to the osrm container.
+#
+# Cross-border note: the default Luxembourg extract only routes INSIDE
+# Luxembourg. For German/Belgian/French homes, set OSRM_EXTRACT_URL to a
+# Greater-Region extract (e.g. a custom rectangle from https://extract.bbbike.org/).
+
+services:
+  # One-shot: download the OSM extract into the shared volume (needs internet).
+  osrm-init:
+    image: curlimages/curl:latest
+    user: "0:0" # write to the root-owned volume
+    volumes:
+      - osrm-data:/data
+    environment:
+      OSRM_EXTRACT_URL: ${OSRM_EXTRACT_URL:-https://download.geofabrik.de/europe/luxembourg-latest.osm.pbf}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'test -f /data/region.osm.pbf || curl -fL -o /data/region.osm.pbf "$$OSRM_EXTRACT_URL"'
+
+  # Preprocess once (extract/partition/customize), then serve routes on :5000.
+  osrm:
+    image: osrm/osrm-backend:latest
+    restart: unless-stopped
+    depends_on:
+      osrm-init:
+        condition: service_completed_successfully
+    volumes:
+      - osrm-data:/data
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        if [ ! -f /data/.osrm-ready ]; then
+          echo "Preprocessing OSRM graph (one-time, a few minutes)…"
+          osrm-extract -p /opt/car.lua /data/region.osm.pbf
+          osrm-partition /data/region.osrm
+          osrm-customize /data/region.osrm
+          touch /data/.osrm-ready
+        fi
+        exec osrm-routed --algorithm mld /data/region.osrm
+
+  # Rebuild the SPA so it calls /osrm (nginx proxies it to the osrm container).
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_OSRM_URL: /osrm
+
+volumes:
+  osrm-data:

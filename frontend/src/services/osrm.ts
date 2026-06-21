@@ -1,4 +1,8 @@
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1/driving';
+// Defaults to the public OSRM demo (called directly from the browser). Build
+// the SPA with VITE_OSRM_URL=/osrm to use a self-hosted OSRM proxied by nginx
+// (see docker-compose.osrm.yml).
+const OSRM_BASE =
+  (import.meta.env.VITE_OSRM_URL || 'https://router.project-osrm.org') + '/route/v1/driving';
 
 /**
  * Driving time in minutes between source and dest ([lon, lat] each), or null
