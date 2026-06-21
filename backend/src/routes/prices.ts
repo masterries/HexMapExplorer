@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyBaseLogger } from 'fastify';
 import { eq, sql } from 'drizzle-orm';
 import ExcelJS from 'exceljs';
 import { db } from '../db/client.js';
@@ -147,39 +147,79 @@ interface PricesQuery {
   force?: string;
 }
 
+interface PriceCacheRow {
+  data: LuPriceData;
+  updatedAt: Date;
+}
+
+/** Read the cached national price dataset (or null if never fetched). */
+async function readPriceCache(): Promise<PriceCacheRow | null> {
+  const [row] = await db
+    .select()
+    .from(realEstateCache)
+    .where(eq(realEstateCache.cacheKey, CACHE_KEY))
+    .limit(1);
+  return row ? { data: row.data, updatedAt: row.updatedAt } : null;
+}
+
+/** Fetch from data.public.lu, parse, and upsert into the cache. */
+async function refreshLuPrices(): Promise<LuPriceData> {
+  const data = await fetchLuPrices();
+  await db
+    .insert(realEstateCache)
+    .values({ cacheKey: CACHE_KEY, data })
+    .onConflictDoUpdate({
+      target: realEstateCache.cacheKey,
+      set: { data, updatedAt: sql`now()` },
+    });
+  return data;
+}
+
 export async function priceRoutes(app: FastifyInstance): Promise<void> {
   app.get('/prices/lu', async (request, reply) => {
     const q = request.query as PricesQuery;
     const force = q.force === 'true' || q.force === '1';
 
-    const [row] = await db
-      .select()
-      .from(realEstateCache)
-      .where(eq(realEstateCache.cacheKey, CACHE_KEY))
-      .limit(1);
+    const row = await readPriceCache();
+    const fresh = row != null && Date.now() - row.updatedAt.getTime() < CACHE_TTL_MS;
 
-    if (!force && row && Date.now() - row.updatedAt.getTime() < CACHE_TTL_MS) {
+    // Normally a cache hit — the scheduled refresh keeps the cache warm, and the
+    // SPA auto-loads on generate without forcing. Only refetch when forced/stale.
+    if (!force && fresh) {
       return { ...row.data, cached: true };
     }
 
-    let data: LuPriceData;
     try {
-      data = await fetchLuPrices();
+      const data = await refreshLuPrices();
+      return { ...data, cached: false };
     } catch (err) {
       request.log.error(err);
       // Serve stale data rather than failing outright, if we have any.
       if (row) return { ...row.data, cached: true };
       return reply.status(502).send({ error: 'Failed to fetch Luxembourg price data' });
     }
-
-    await db
-      .insert(realEstateCache)
-      .values({ cacheKey: CACHE_KEY, data })
-      .onConflictDoUpdate({
-        target: realEstateCache.cacheKey,
-        set: { data, updatedAt: sql`now()` },
-      });
-
-    return { ...data, cached: false };
   });
+}
+
+/**
+ * Keep the cached Luxembourg price dataset fresh in the background. The source
+ * (Observatoire de l'Habitat) updates quarterly; we warm the cache shortly
+ * after boot and re-check daily, refetching only when the cache is older than
+ * the TTL. Best-effort — failures are logged, never fatal.
+ */
+export function startLuPriceScheduler(log: FastifyBaseLogger): void {
+  const tick = async (): Promise<void> => {
+    try {
+      const row = await readPriceCache();
+      if (!row || Date.now() - row.updatedAt.getTime() >= CACHE_TTL_MS) {
+        await refreshLuPrices();
+        log.info('LU price cache refreshed (scheduled)');
+      }
+    } catch (err) {
+      log.error({ err }, 'LU price scheduled refresh failed');
+    }
+  };
+  // Warm-up a few seconds after boot (non-blocking), then re-check daily.
+  setTimeout(() => void tick(), 5_000);
+  setInterval(() => void tick(), 24 * 60 * 60 * 1000);
 }

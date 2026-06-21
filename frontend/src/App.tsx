@@ -280,12 +280,13 @@ export default function App() {
         if (configRef.current.poiCategories.length > 0) {
           await handlePoiLoad();
         }
+        await handlePriceLoad();
         refreshRanking();
       } finally {
         setGenerating(false);
       }
     },
-    [patch, apiRef, start, handlePoiLoad, configRef, refreshRanking],
+    [patch, apiRef, start, handlePoiLoad, handlePriceLoad, configRef, refreshRanking],
   );
 
   // --- Geocode search ---
@@ -313,11 +314,14 @@ export default function App() {
       if (configRef.current.poiCategories.length > 0) {
         await handlePoiLoad();
       }
+      // Auto-load the Luxembourg price layer (cached) so the Price color mode
+      // and per-hex price trend are ready without a manual step.
+      await handlePriceLoad();
       refreshRanking();
     } finally {
       setGenerating(false);
     }
-  }, [start, handlePoiLoad, configRef, refreshRanking]);
+  }, [start, handlePoiLoad, handlePriceLoad, configRef, refreshRanking]);
 
   const handleToggleCategory = useCallback(
     (key: string) => {
