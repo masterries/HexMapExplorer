@@ -121,7 +121,12 @@ async function fetchOverpass(b: PoiBody, categories: string[]): Promise<Poi[]> {
     const dedup = `${category}:${lat.toFixed(5)}:${lon.toFixed(5)}`;
     if (seen.has(dedup)) continue;
     seen.add(dedup);
-    pois.push(tags.name ? { lat, lon, category, name: tags.name } : { lat, lon, category });
+    const poi: Poi = { lat, lon, category };
+    if (tags.name) poi.name = tags.name;
+    const website = tags.website ?? tags['contact:website'];
+    if (website) poi.website = website;
+    if (tags.opening_hours) poi.openingHours = tags.opening_hours;
+    pois.push(poi);
   }
   return pois;
 }
@@ -145,7 +150,9 @@ export async function poiRoutes(app: FastifyInstance): Promise<void> {
     if (categories.length === 0) return { pois: [], cached: false };
 
     const round = (n: number) => n.toFixed(4);
-    const cacheKey = `${round(body.south)},${round(body.west)},${round(body.north)},${round(
+    // Bump this version when the stored POI shape changes (e.g. added tags), so
+    // old cache entries are ignored and refetched with the new fields.
+    const cacheKey = `v2|${round(body.south)},${round(body.west)},${round(body.north)},${round(
       body.east,
     )}|${[...categories].sort().join(',')}`;
 

@@ -1,4 +1,4 @@
-import type { ColorMode, RankedHex, ViewMode } from '../types';
+import type { ColorMode, PriceMetric, RankedHex, ViewMode } from '../types';
 
 interface LiveabilityPanelProps {
   colorMode: ColorMode;
@@ -6,7 +6,9 @@ interface LiveabilityPanelProps {
   commuteWeight: number; // 0..1
   nearbyRadiusKm: number;
   ranking: RankedHex[];
+  priceMetric: PriceMetric;
   onColorModeChange: (m: ColorMode) => void;
+  onPriceMetricChange: (m: PriceMetric) => void;
   onViewModeChange: (m: ViewMode) => void;
   onCommuteWeightChange: (w: number) => void; // 0..1
   onNearbyRadiusChange: (km: number) => void;
@@ -19,7 +21,9 @@ export function LiveabilityPanel({
   commuteWeight,
   nearbyRadiusKm,
   ranking,
+  priceMetric,
   onColorModeChange,
+  onPriceMetricChange,
   onViewModeChange,
   onCommuteWeightChange,
   onNearbyRadiusChange,
@@ -50,10 +54,27 @@ export function LiveabilityPanel({
             ))}
           </div>
           {colorMode === 'price' && (
-            <p className="text-[10px] text-gray-400 leading-tight mt-1">
-              Green = cheaper, red = pricier (€/m²). Load data in the <b>Immo</b> tab; each hex
-              shows its commune's price trend in the popup.
-            </p>
+            <div className="mt-2">
+              <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg">
+                {(['apartment', 'house'] as PriceMetric[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => onPriceMetricChange(m)}
+                    className={`py-1.5 text-xs font-bold rounded-md transition-colors ${
+                      priceMetric === m
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {m === 'apartment' ? 'Apartments' : 'Houses'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-400 leading-tight mt-1">
+                Green = cheaper, red = pricier (€/m²). Load prices in <b>Settings</b>; each hex
+                shows its commune's price trend in the detail view.
+              </p>
+            </div>
           )}
         </div>
 

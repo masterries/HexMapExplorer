@@ -50,6 +50,10 @@ export interface Poi {
   lon: number;
   category: string;
   name?: string;
+  /** OSM website / contact:website tag, if present. */
+  website?: string;
+  /** OSM opening_hours tag (raw OSM syntax), if present. */
+  openingHours?: string;
 }
 
 /**

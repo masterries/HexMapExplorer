@@ -482,6 +482,8 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
           lat: p.lat,
           lon: p.lon,
           distM: Math.round(approxDistMeters(h.hLat, h.hLon, p.lat, p.lon)),
+          website: p.website,
+          openingHours: p.openingHours,
         }))
         .filter((p) => p.distM <= scoreCfg.nearbyRadiusM)
         .sort((a, b) => a.distM - b.distM);

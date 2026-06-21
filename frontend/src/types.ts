@@ -54,6 +54,8 @@ export interface NearbyPoi {
   lat: number;
   lon: number;
   distM: number;
+  website?: string;
+  openingHours?: string;
 }
 
 /** Everything needed to render the per-hex detail view (built by the map hook
@@ -98,6 +100,8 @@ export interface Poi {
   lon: number;
   category: string;
   name?: string;
+  website?: string;
+  openingHours?: string;
 }
 
 export interface BBox {

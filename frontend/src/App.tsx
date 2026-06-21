@@ -381,9 +381,7 @@ export default function App() {
         <TabBar
           tabs={[
             { key: 'trip', label: 'Trip' },
-            { key: 'pois', label: 'POIs' },
             { key: 'score', label: 'Score' },
-            { key: 'prices', label: 'Immo' },
             { key: 'saved', label: 'Saved' },
             { key: 'settings', label: 'Settings' },
           ]}
@@ -461,17 +459,6 @@ export default function App() {
             </>
           )}
 
-          {activeTab === 'pois' && (
-          <PoiControls
-            selected={config.poiCategories}
-            onToggleCategory={handleToggleCategory}
-            onLoad={() => void handlePoiLoad()}
-            onClear={handlePoiClear}
-            loading={poiLoading}
-            status={poiStatus}
-          />
-          )}
-
           {activeTab === 'score' && (
           <LiveabilityPanel
             colorMode={config.colorMode}
@@ -479,23 +466,13 @@ export default function App() {
             commuteWeight={config.commuteWeight}
             nearbyRadiusKm={config.nearbyRadiusKm}
             ranking={ranking}
+            priceMetric={config.priceMetric}
             onColorModeChange={(m) => setField('colorMode', m)}
+            onPriceMetricChange={(m) => setField('priceMetric', m)}
             onViewModeChange={(m) => setField('viewMode', m)}
             onCommuteWeightChange={(w) => setField('commuteWeight', w)}
             onNearbyRadiusChange={(v) => setField('nearbyRadiusKm', v)}
             onFocusHex={handleFocusHex}
-          />
-          )}
-
-          {activeTab === 'prices' && (
-          <PricePanel
-            loaded={priceLoaded}
-            loading={priceLoading}
-            status={priceStatus}
-            metric={config.priceMetric}
-            source={priceSource}
-            onLoad={() => void handlePriceLoad()}
-            onMetricChange={(m) => setField('priceMetric', m)}
           />
           )}
 
@@ -512,10 +489,27 @@ export default function App() {
           )}
 
           {activeTab === 'settings' && (
-          <SettingsPanel
-            performanceMode={config.performanceMode}
-            onPerformanceModeChange={(v) => setField('performanceMode', v)}
-          />
+          <div className="space-y-6">
+            <SettingsPanel
+              performanceMode={config.performanceMode}
+              onPerformanceModeChange={(v) => setField('performanceMode', v)}
+            />
+            <PoiControls
+              selected={config.poiCategories}
+              onToggleCategory={handleToggleCategory}
+              onLoad={() => void handlePoiLoad()}
+              onClear={handlePoiClear}
+              loading={poiLoading}
+              status={poiStatus}
+            />
+            <PricePanel
+              loaded={priceLoaded}
+              loading={priceLoading}
+              status={priceStatus}
+              source={priceSource}
+              onLoad={() => void handlePriceLoad()}
+            />
+          </div>
           )}
         </div>
         </>

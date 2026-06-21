@@ -150,17 +150,39 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
                   </div>
                   <ul className="mt-0.5 space-y-0.5">
                     {items.slice(0, 4).map((p, i) => (
-                      <li key={i} className="flex items-center justify-between gap-2 text-[11px]">
-                        <a
-                          href={osmLink(p.lat, p.lon)}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="Open in OpenStreetMap"
-                          className="truncate text-gray-500 hover:text-blue-600 hover:underline"
-                        >
-                          {p.name ? p.name : <span className="italic text-gray-400">unnamed</span>}
-                        </a>
-                        <span className="font-mono text-gray-400 shrink-0">{fmtDist(p.distM)}</span>
+                      <li key={i} className="text-[11px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <a
+                            href={osmLink(p.lat, p.lon)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Open in OpenStreetMap"
+                            className="truncate text-gray-500 hover:text-blue-600 hover:underline"
+                          >
+                            {p.name ? p.name : <span className="italic text-gray-400">unnamed</span>}
+                          </a>
+                          <span className="font-mono text-gray-400 shrink-0">{fmtDist(p.distM)}</span>
+                        </div>
+                        {(p.website || p.openingHours) && (
+                          <div className="flex items-center gap-2 text-[10px] text-gray-400 leading-tight">
+                            {p.website && (
+                              <a
+                                href={p.website}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={p.website}
+                                className="underline hover:text-blue-600 shrink-0"
+                              >
+                                Website
+                              </a>
+                            )}
+                            {p.openingHours && (
+                              <span className="truncate" title={p.openingHours}>
+                                🕑 {p.openingHours}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </li>
                     ))}
                     {items.length > 4 && (

@@ -1,38 +1,27 @@
 import { PRICE_SOURCE_URL } from '../services/realEstate';
-import type { PriceMetric } from '../types';
 
 interface PricePanelProps {
   loaded: boolean;
   loading: boolean;
   status: string;
-  metric: PriceMetric;
   source: string;
   onLoad: () => void;
-  onMetricChange: (m: PriceMetric) => void;
 }
 
 /**
- * Loads Luxembourg commune-level real-estate asking prices and exposes the
- * apartment/house metric toggle. Each hex inherits the price trend of the
- * commune it falls in; the trend itself shows in the hex popup.
+ * Loads Luxembourg commune-level real-estate asking prices. The apartment/house
+ * metric is chosen in the Score tab (next to the Price color mode); each hex
+ * inherits its commune's price trend, shown in the detail view.
  */
-export function PricePanel({
-  loaded,
-  loading,
-  status,
-  metric,
-  source,
-  onLoad,
-  onMetricChange,
-}: PricePanelProps) {
+export function PricePanel({ loaded, loading, status, source, onLoad }: PricePanelProps) {
   return (
     <div>
       <h3 className="text-xs font-bold uppercase text-gray-400 mb-2 ml-1">Real estate</h3>
       <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100 space-y-4">
         <p className="text-[11px] text-gray-500 leading-snug">
-          Commune-level <b>asking prices</b> (€/m²) for Luxembourg, 2010–2025. Each hex
-          inherits its commune's price trend — switch <b>Color hexes by</b> to <b>Price</b>
-          in the <b>Score</b> tab, and open a hex to see its apartment &amp; house history.
+          Commune-level <b>asking prices</b> (€/m²) for Luxembourg, 2010–2025. Loaded
+          automatically when you generate. Switch <b>Color hexes by</b> to <b>Price</b> in the{' '}
+          <b>Score</b> tab (and pick Apartments/Houses there); click a hex for its trend.
         </p>
 
         <button
@@ -44,28 +33,6 @@ export function PricePanel({
         </button>
 
         {status && <p className="text-[11px] text-gray-500 text-center">{status}</p>}
-
-        <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">Price layer</label>
-          <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-lg">
-            {(['apartment', 'house'] as PriceMetric[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => onMetricChange(m)}
-                className={`py-1.5 text-xs font-bold rounded-md transition-colors ${
-                  metric === m
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {m === 'apartment' ? 'Apartments' : 'Houses'}
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] text-gray-400 leading-tight mt-1">
-            Switches which series colors the hexes and drives the on-hex number (k€/m²).
-          </p>
-        </div>
 
         <p className="text-[10px] text-gray-400 leading-tight">
           <a
