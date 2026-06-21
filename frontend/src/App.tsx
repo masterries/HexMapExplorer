@@ -22,6 +22,7 @@ import { InfoFooter } from './components/InfoFooter';
 import { AdminPanel } from './components/AdminPanel';
 import { PricePanel } from './components/PricePanel';
 import { HexDetailView } from './components/HexDetailView';
+import { SettingsPanel } from './components/SettingsPanel';
 import { buildCommuneIndex, loadCommuneGeo, type CommuneIndex } from './services/realEstate';
 
 const round4 = (n: number) => Number(n.toFixed(4));
@@ -152,6 +153,11 @@ export default function App() {
   useEffect(() => {
     apiRef.current?.setPriceMetric(config.priceMetric);
   }, [config.priceMetric, apiRef]);
+
+  // Sync performance mode (drop on-hex labels) to the map.
+  useEffect(() => {
+    apiRef.current?.setPerformanceMode(config.performanceMode);
+  }, [config.performanceMode, apiRef]);
 
   const handleFocusHex = useCallback(
     (q: number, r: number) => {
@@ -375,6 +381,7 @@ export default function App() {
             { key: 'score', label: 'Score' },
             { key: 'prices', label: 'Immo' },
             { key: 'saved', label: 'Saved' },
+            { key: 'settings', label: 'Settings' },
           ]}
           active={activeTab}
           onChange={setActiveTab}
@@ -497,6 +504,13 @@ export default function App() {
             historyLoading={historyLoading}
             onRefresh={() => void loadHistory()}
             onLoad={handleLoadItem}
+          />
+          )}
+
+          {activeTab === 'settings' && (
+          <SettingsPanel
+            performanceMode={config.performanceMode}
+            onPerformanceModeChange={(v) => setField('performanceMode', v)}
           />
           )}
         </div>

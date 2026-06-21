@@ -23,6 +23,8 @@ export interface AppConfig {
   viewMode: ViewMode;
   /** Which real-estate series colors/labels hexes in 'price' mode. */
   priceMetric: PriceMetric;
+  /** Performance mode: hide on-hex numbers (labels) for speed on big grids. */
+  performanceMode: boolean;
 }
 
 export type ColorMode = 'commute' | 'liveability' | 'price';
@@ -45,6 +47,13 @@ export interface LuPrices {
   cached?: boolean;
 }
 
+/** A nearby point of interest with its distance from the hex. */
+export interface NearbyPoi {
+  category: string;
+  name?: string;
+  distM: number;
+}
+
 /** Everything needed to render the per-hex detail view (built by the map hook
  *  on click and handed to React). */
 export interface HexDetail {
@@ -59,6 +68,8 @@ export interface HexDetail {
   commuteWeight: number;
   nearbyRadiusM: number;
   counts: Record<string, number>;
+  /** Actual nearby POIs (with names + distance) inside the amenity radius. */
+  nearbyPois: NearbyPoi[];
   /** Commune containing the hex, or null if outside Luxembourg / no data loaded. */
   commune: string | null;
   years: number[] | null;

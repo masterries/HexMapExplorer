@@ -1,7 +1,7 @@
 import { PriceChart } from './PriceChart';
 import { POI_LABELS } from '../services/poi';
 import { firstValue, latestValue } from '../services/realEstate';
-import type { HexDetail } from '../types';
+import type { HexDetail, NearbyPoi } from '../types';
 
 interface HexDetailViewProps {
   detail: HexDetail;
@@ -21,7 +21,7 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
     commuteScore,
     poiScore,
     commuteWeight,
-    counts,
+    nearbyPois,
     nearbyRadiusM,
     years,
     apartment,
@@ -29,7 +29,10 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
   } = detail;
 
   const cw = Math.round(commuteWeight * 100);
-  const poiLines = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const byCat: Record<string, NearbyPoi[]> = {};
+  for (const p of nearbyPois) (byCat[p.category] ??= []).push(p);
+  const nearbyCats = Object.entries(byCat).sort((a, b) => b[1].length - a[1].length);
+  const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`);
   const hasPrice =
     !!years &&
     !!apartment &&
@@ -129,14 +132,32 @@ export function HexDetailView({ detail, onClose }: HexDetailViewProps) {
           <label className="text-xs font-bold text-gray-700 block mb-1">
             Nearby ({nearbyRadiusM / 1000} km)
           </label>
-          {poiLines.length ? (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-600">
-              {poiLines.map(([cat, count]) => (
-                <div key={cat} className="flex justify-between">
-                  <span>{POI_LABELS[cat] ?? cat}</span>
-                  <span className="font-mono">{count}</span>
+          {nearbyCats.length ? (
+            <div className="space-y-2">
+              {nearbyCats.map(([cat, items]) => (
+                <div key={cat}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-600">{POI_LABELS[cat] ?? cat}</span>
+                    <span className="text-[10px] text-gray-400">{items.length}</span>
+                  </div>
+                  <ul className="mt-0.5 space-y-0.5">
+                    {items.slice(0, 4).map((p, i) => (
+                      <li key={i} className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="truncate text-gray-500">
+                          {p.name ? p.name : <span className="italic text-gray-400">unnamed</span>}
+                        </span>
+                        <span className="font-mono text-gray-400 shrink-0">{fmtDist(p.distM)}</span>
+                      </li>
+                    ))}
+                    {items.length > 4 && (
+                      <li className="text-[10px] text-gray-400">+{items.length - 4} more</li>
+                    )}
+                  </ul>
                 </div>
               ))}
+              <p className="text-[10px] text-gray-400 leading-tight pt-1">
+                Names from OpenStreetMap. Ratings/reviews aren't available in OSM data.
+              </p>
             </div>
           ) : (
             <p className="text-[11px] text-gray-400">No amenities loaded, or none nearby.</p>

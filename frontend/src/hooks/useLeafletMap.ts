@@ -89,6 +89,8 @@ export interface MapApi {
   setPriceData(prices: LuPrices, index: CommuneIndex): void;
   clearPriceData(): void;
   setPriceMetric(metric: PriceMetric): void;
+  /** Performance mode: drop on-hex labels entirely (frees their DOM). */
+  setPerformanceMode(on: boolean): void;
 }
 
 interface UseLeafletMapOptions {
@@ -203,6 +205,8 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
     let priceMax = 1;
     // hexKey -> containing commune display name (or null if outside Luxembourg).
     const hexCommune: Record<string, string | null> = {};
+    // Performance mode: skip the permanent on-hex labels (the costly part).
+    let performanceMode = false;
 
     // Per-hex data kept for re-coloring and ranking by liveability score.
     const hexData: Record<
@@ -374,6 +378,23 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         el.style.opacity = navigating && key !== selectedKey ? '0' : visible ? '1' : '0';
       }
     }
+
+    /** Bind the permanent on-hex label for a done hex, unless performance mode,
+     *  labels-off, or the large-grid cap says to skip it. Idempotent. */
+    function bindHexLabel(key: string): void {
+      const layer = hexLayers[key];
+      const h = hexData[key];
+      if (!layer || !h || layer.getTooltip()) return;
+      if (performanceMode || !renderConfig.showLabels) return;
+      const cap = renderConfig.hexSize >= 1.0 ? 2500 : LABEL_CAP;
+      if (hexCount(renderConfig.radius) > cap) return;
+      const visibilityClass = labelsVisible() ? 'opacity-100' : 'opacity-0';
+      layer.bindTooltip(labelFor(h.time, h.hLat, h.hLon), {
+        permanent: true,
+        direction: 'center',
+        className: `hex-label ${visibilityClass} transition-opacity duration-300 font-bold text-gray-700 pointer-events-none`,
+      });
+    }
     map.on('zoomend', refreshLabels);
 
     /** Navigate-mode emphasis: fade non-selected hexes + far POIs. */
@@ -453,6 +474,15 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
       const commune =
         hexCommune[key] ?? (communeIndex ? communeIndex.locate(h.hLat, h.hLon) : null);
       const c = commune ? priceByCommune.get(normName(commune)) : null;
+      // Actual nearby POIs (with names + distance) inside the amenity radius.
+      const nearbyPois = currentPois
+        .map((p) => ({
+          category: p.category,
+          name: p.name,
+          distM: Math.round(approxDistMeters(h.hLat, h.hLon, p.lat, p.lon)),
+        }))
+        .filter((p) => p.distM <= scoreCfg.nearbyRadiusM)
+        .sort((a, b) => a.distM - b.distM);
       return {
         q: h.q,
         r: h.r,
@@ -465,6 +495,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         commuteWeight: scoreCfg.commuteWeight,
         nearbyRadiusM: scoreCfg.nearbyRadiusM,
         counts,
+        nearbyPois,
         commune,
         years: priceData ? priceData.years : null,
         apartment: c ? c.apartment : null,
@@ -580,19 +611,7 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         }
 
         if (state === 'done') {
-          // Skip permanent labels for very large grids (too dense + slow).
-          // Large (low-res) hexes are sparse on screen, so allow many more
-          // before skipping labels; dense small-hex grids keep the tight cap.
-          const cap = renderConfig.hexSize >= 1.0 ? 2500 : LABEL_CAP;
-          const labelsAllowed = renderConfig.showLabels && hexCount(renderConfig.radius) <= cap;
-          if (labelsAllowed) {
-            const visibilityClass = labelsVisible() ? 'opacity-100' : 'opacity-0';
-            layer.bindTooltip(labelFor(drivingTime, hLat, hLon), {
-              permanent: true,
-              direction: 'center',
-              className: `hex-label ${visibilityClass} transition-opacity duration-300 font-bold text-gray-700 pointer-events-none`,
-            });
-          }
+          bindHexLabel(key);
           // Clicking a hex opens its detail view (and focuses it in navigate).
           layer.on('click', (e) => {
             optionsRef.current.onHexSelect(buildHexDetail(key));
@@ -704,6 +723,16 @@ export function useLeafletMap(options: UseLeafletMapOptions) {
         computePriceRamp();
         recolorAll();
         refreshOpenPopup();
+      },
+      setPerformanceMode(on) {
+        performanceMode = on;
+        if (on) {
+          // Free the label DOM entirely (the actual perf cost), not just hide it.
+          for (const key of Object.keys(hexLayers)) hexLayers[key].unbindTooltip();
+        } else {
+          for (const key of Object.keys(hexData)) bindHexLabel(key);
+          refreshLabels();
+        }
       },
     };
 

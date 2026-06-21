@@ -18,6 +18,7 @@ const DEFAULT_CONFIG: AppConfig = {
   nearbyRadiusKm: 1.0,
   viewMode: 'all',
   priceMetric: 'apartment',
+  performanceMode: false,
 };
 
 /**
